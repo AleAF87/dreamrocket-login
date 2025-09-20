@@ -16,16 +16,17 @@ exports.handler = async (event) => {
         "api-key": process.env.BREVO_API_KEY
       },
       body: JSON.stringify({
-        sender: { name: "Dejem9GB", email: "9gbdejem@gmail.com" }, 
+        sender: { name: "Nome Aqui", email: "dreamrocketrp@gmail.com" }, 
         to: [{ email, name }],
         subject,
         htmlContent: `
           <h3>Olá, ${name}!</h3>
           <p>Obrigado por entrar em contato. Aqui está sua mensagem:</p>
           <p><strong>Assunto:</strong> ${subject}</p>
+          <p></p>
           <p>${message}</p>
           <hr>
-          <p><i>Este e-mail foi enviado automaticamente por Dejem9GB (noreply).</i></p>
+          <p><i>Não responda este e-mail, pois foi enviado automaticamente.</i></p>
         `
       })
     });
