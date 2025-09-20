@@ -1,53 +1,73 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Formulário de Contato</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 40px; }
-    form { max-width: 400px; margin: auto; display: flex; flex-direction: column; gap: 10px; }
-    input, textarea, button { padding: 10px; font-size: 1rem; }
-    button { background: #007bff; color: white; border: none; cursor: pointer; }
-    button:hover { background: #0056b3; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Acesso</title>
+    <link rel="stylesheet" href="css/style.css">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    
+    <!-- Configurações -->
+    <script src="js/firebase-config.js" defer></script>
+    <script src="js/auth.js" defer></script>
 </head>
 <body>
-  <h2>Contato</h2>
-  <form id="contact-form">
-    <input type="text" id="name" placeholder="Seu nome" required>
-    <input type="email" id="email" placeholder="Seu e-mail" required>
-    <input type="text" id="subject" placeholder="Assunto" required>
-    <textarea id="message" placeholder="Mensagem" rows="5" required></textarea>
-    <button type="submit">Enviar</button>
-  </form>
+    <div class="container">
+        <div class="login-box">
+            <h1>Acesso ao Sistema</h1>
+            
+            <form id="loginForm">
+                <div class="input-group">
+                    <label for="userId">ID do Usuário:</label>
+                    <input 
+                        type="text" 
+                        id="userId" 
+                        name="userId" 
+                        required 
+                        placeholder="Digite seu ID"
+                        autocomplete="username"
+                    >
+                </div>
 
-  <script>
-    const form = document.getElementById("contact-form");
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
+                <div class="input-group">
+                    <label for="password">Senha:</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        placeholder="Digite sua senha"
+                        autocomplete="current-password"
+                        disabled
+                    >
+                </div>
 
-      const payload = {
-        name: document.getElementById("name").value,
-        email: document.getElementById("email").value,
-        subject: document.getElementById("subject").value,
-        message: document.getElementById("message").value
-      };
+                <div id="resetMessage" class="reset-message hidden">
+                    <p>⚠️ Sua senha precisa ser resetada. Clique em "Esqueci minha senha" para continuar.</p>
+                </div>
 
-      const res = await fetch("/.netlify/functions/sendEmail", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
+                <div class="buttons-group">
+                    <button type="submit" id="accessBtn" class="btn btn-primary" disabled>
+                        Acessar
+                    </button>
+                    
+                    <button type="button" id="forgotPasswordBtn" class="btn btn-secondary" disabled>
+                        Esqueci minha senha
+                    </button>
+                </div>
+            </form>
 
-      const data = await res.json();
-      if (res.ok) {
-        alert("✅ Mensagem enviada com sucesso!");
-        form.reset();
-      } else {
-        alert("❌ Erro: " + data.error);
-      }
-    });
-  </script>
+            <div id="loading" class="loading hidden">
+                <div class="loading-spinner"></div>
+                <p>Verificando...</p>
+            </div>
+
+            <div id="errorMessage" class="error-message hidden"></div>
+            <div id="successMessage" class="success-message hidden"></div>
+        </div>
+    </div>
 </body>
 </html>

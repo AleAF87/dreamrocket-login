@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Principal</title>
+    <link rel="stylesheet" href="css/style.css">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    
+    <!-- Configurações -->
+    <script src="js/firebase-config.js" defer></script>
+    <script src="js/main-auth.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <div class="main-content">
+            <header class="main-header">
+                <h1>Painel Principal</h1>
+                <button id="logoutBtn" class="btn btn-secondary">Sair</button>
+            </header>
+
+            <div class="user-card">
+                <h2>👤 Dados do Usuário</h2>
+                
+                <div id="userData" class="user-data">
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                        <p>Carregando dados...</p>
+                    </div>
+                </div>
+
+                <div id="userExtraData" class="user-extra-data hidden">
+                    <h3>Informações Adicionais</h3>
+                    <div class="data-grid">
+                        <div class="data-item">
+                            <span class="data-label">ID:</span>
+                            <span id="userId" class="data-value"></span>
+                        </div>
+                        <div class="data-item">
+                            <span class="data-label">CPF:</span>
+                            <span id="userCpf" class="data-value"></span>
+                        </div>
+                        <div class="data-item">
+                            <span class="data-label">Status:</span>
+                            <span id="userStatus" class="data-value status-active">Ativo</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="session-info">
+                <h3>📊 Informações da Sessão</h3>
+                <div class="data-grid">
+                    <div class="data-item">
+                        <span class="data-label">Login realizado em:</span>
+                        <span id="loginTime" class="data-value"></span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">Email verificado:</span>
+                        <span id="emailVerified" class="data-value"></span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">Provedor:</span>
+                        <span id="authProvider" class="data-value">Email/Senha</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="errorMessage" class="error-message hidden"></div>
+        </div>
+    </div>
+</body>
+</html>
