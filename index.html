@@ -2,299 +2,247 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Corretor de Gabaritos 4×20 — 3 por A4 (modo semiauto)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Leitor Móvel - Gabarito 4×20</title>
 <style>
-  :root{--bg:#f7fafc;--accent:#2563eb;--muted:#6b7280}
-  body{font-family:system-ui,Segoe UI,Roboto,Arial;background:var(--bg);color:#111;margin:0;padding:16px}
-  .container{max-width:1100px;margin:0 auto}
-  h1{font-size:20px;margin:6px 0}
-  .controls{display:block;margin:8px 0}
-  .btn{display:block;width:100%;padding:14px;border-radius:10px;border:0;margin:8px 0;font-size:16px;background:var(--accent);color:#fff;cursor:pointer}
+  :root{--bg:#f7fafc;--accent:#0b63d6;--muted:#6b7280}
+  body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial;background:var(--bg);color:#111;padding:14px}
+  .wrap{max-width:900px;margin:0 auto}
+  h1{font-size:18px;margin:6px 0}
+  .btn{display:block;width:100%;padding:16px;border-radius:12px;border:0;margin:10px 0;font-size:18px;background:var(--accent);color:#fff;cursor:pointer}
   .btn.secondary{background:#374151}
   .btn.warn{background:#f59e0b}
-  #video, #workCanvas, #preview{max-width:100%;border-radius:8px;border:1px solid #ddd}
-  #imgWrap{position:relative;display:inline-block}
-  #overlay{position:absolute;left:0;top:0;pointer-events:none}
-  label{display:block;margin-top:8px;color:var(--muted)}
-  input[type=file]{display:block;margin-top:6px}
-  .info{font-size:13px;color:var(--muted);margin-top:6px}
-  .gridResults{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
-  .card{background:white;padding:10px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
-  .resultRow{display:flex;gap:8px;align-items:center}
-  .badge{padding:6px 8px;border-radius:6px;background:#efefef;font-weight:600}
-  pre{background:#111;color:#fff;padding:8px;border-radius:6px;overflow:auto}
   .small{font-size:13px;color:var(--muted)}
+  #video{width:100%;border-radius:10px;border:1px solid #ddd}
+  #previewImg{width:100%;border-radius:10px;border:1px solid #ddd;margin-top:8px}
+  #overlay{position:absolute;left:0;top:0;pointer-events:none}
+  #imgWrap{position:relative;display:block;margin-top:8px}
+  .resultsCard{background:#fff;padding:12px;border-radius:10px;margin-top:12px;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+  pre{white-space:pre-wrap;background:#111;color:#fff;padding:8px;border-radius:6px;overflow:auto}
+  label{display:block;margin-top:8px}
+  input[type=file]{width:100%}
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>Corretor: gabarito 4×20 — (3 gabaritos por A4)</h1>
+<div class="wrap">
+  <h1>Leitor Móvel de Gabarito — 4×20 (A–D)</h1>
+  <div class="small">Use seu celular: enquadre o gabarito (uma ficha por foto). Recomendo boa iluminação e foco.</div>
 
-  <div class="controls">
-    <button id="startCamera" class="btn">Abrir câmera (facing environment)</button>
-    <button id="capture" class="btn secondary">Capturar foto</button>
-    <label>ou envie uma imagem (foto do A4 / export do PDF):</label>
-    <input id="fileInput" type="file" accept="image/*,application/pdf" />
-    <div class="info">Modo recomendado: <strong>Semiautomático</strong> — clique 4 cantos para cada gabarito após carregar a imagem. Para processamento totalmente automático, adicione 4 marcadores pretos em cada gabarito no template.</div>
-  </div>
+  <button id="startCam" class="btn">Abrir Câmera (facing environment)</button>
+  <button id="captureBtn" class="btn secondary">Capturar Foto</button>
 
-  <div id="liveArea">
-    <video id="video" autoplay playsinline style="display:none"></video>
-    <canvas id="workCanvas" style="display:none"></canvas>
-  </div>
+  <label class="small">ou envie uma imagem (PNG/JPG):</label>
+  <input id="fileInput" type="file" accept="image/*" />
 
-  <h2 class="small" style="margin-top:8px">Imagem carregada / capturada (clique 4 pontos por gabarito)</h2>
   <div id="imgWrap">
-    <img id="mainImg" src="" alt="Nenhuma imagem" style="max-width:100%;border-radius:8px;border:1px solid #ddd" />
-    <canvas id="overlay"></canvas>
+    <video id="video" autoplay playsinline style="display:none"></video>
+    <img id="previewImg" src="" alt="" />
+    <canvas id="overlay" style="position:absolute;top:0;left:0;"></canvas>
   </div>
 
-  <div style="margin-top:10px">
-    <button id="modeAuto" class="btn warn">Tentar detecção automática dos 3 gabaritos (experimental)</button>
-    <button id="processBtn" class="btn">Processar (usar cantos definidos)</button>
+  <button id="autoDetect" class="btn warn">Detectar automaticamente o contorno (experimental)</button>
+  <button id="processBtn" class="btn">Processar (usar 4 cantos definidos)</button>
+
+  <div class="small" id="instr" style="margin-top:8px">
+    Instruções:
+    <ol>
+      <li>Abra a câmera e capture a foto (ou faça upload).</li>
+      <li>Após a imagem aparecer, toque 4 vezes nos cantos do gabarito (sentido qualquer) — apenas 4 toques — ou clique em "Detectar automaticamente".</li>
+      <li>Ao processar, cole a chave JSON (ex: [0,1,2,3,...] com 20 valores; 0=A,1=B...).</li>
+    </ol>
   </div>
 
-  <div id="instructions" class="small info">
-    Instruções (modo semiautomático):<br>
-    1) carregue ou capture a foto da folha A4 com 3 gabaritos;<br>
-    2) clique 4 vezes nos cantos do primeiro gabarito (sentido horário ou anti-horário);<br>
-    3) repita para o 2º e 3º gabarito (total 12 cliques). Depois clique em "Processar".
-  </div>
-
-  <div id="results" class="gridResults" style="display:none"></div>
-
-  <div id="log" style="margin-top:12px"></div>
+  <div id="resultsArea"></div>
+  <div id="log" class="small" style="margin-top:8px"></div>
 </div>
 
-<!-- OpenCV.js -->
+<!-- OpenCV.js CDN -->
 <script async src="https://docs.opencv.org/4.x/opencv.js" onload="onOpenCvReady();"></script>
 
 <script>
 let cvReady=false;
 function onOpenCvReady(){ cv['onRuntimeInitialized']=()=>{ cvReady=true; console.log('OpenCV ready'); } }
 
-const mainImg = document.getElementById('mainImg');
-const overlay = document.getElementById('overlay');
-const startCamera = document.getElementById('startCamera');
-const captureBtn = document.getElementById('capture');
+const startCam = document.getElementById('startCam');
+const captureBtn = document.getElementById('captureBtn');
 const fileInput = document.getElementById('fileInput');
 const video = document.getElementById('video');
-const workCanvas = document.getElementById('workCanvas');
+const previewImg = document.getElementById('previewImg');
+const overlay = document.getElementById('overlay');
+const autoDetect = document.getElementById('autoDetect');
 const processBtn = document.getElementById('processBtn');
-const modeAutoBtn = document.getElementById('modeAuto');
-const resultsDiv = document.getElementById('results');
-const logDiv = document.getElementById('log');
+const resultsArea = document.getElementById('resultsArea');
+const logEl = document.getElementById('log');
 
 let stream=null;
-let points=[]; // will store arrays of 4 points per gabarito
-let currentClicks=0;
+let clicks = []; // will store 4 points
+let imgNaturalW=0, imgNaturalH=0;
 
-function log(msg){ logDiv.innerHTML = '<div class="small">'+msg+'</div>'; }
+function log(msg){ logEl.innerText = msg; }
 
-startCamera.onclick = async ()=>{
+// Start camera (mobile back)
+startCam.onclick = async ()=>{
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return alert('Navegador sem suporte a câmera');
-  try{
+  try {
     stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}, audio:false});
     video.srcObject = stream;
     await video.play();
-    video.style.display='block';
-    workCanvas.style.display='none';
-    // draw first frame to mainImg so user can click corners
-    captureFrameToImage();
-  }catch(e){ alert('Erro abrindo câmera: '+e.message); }
+    // capture first frame to preview so user can click
+    captureFrame();
+    video.style.display = 'none'; // we only use frame capture
+    log('Câmera aberta — capture a foto.');
+  } catch(e){ alert('Erro ao abrir câmera: '+e.message); }
 };
 
-captureBtn.onclick = ()=> captureFrameToImage();
+// Capture frame from camera and show image
+captureBtn.onclick = ()=> captureFrame();
 
-async function captureFrameToImage(){
-  if (!video.srcObject){ alert('Abra a câmera primeiro ou faça upload de uma imagem'); return; }
-  workCanvas.width = video.videoWidth; workCanvas.height = video.videoHeight;
-  let ctx = workCanvas.getContext('2d'); ctx.drawImage(video,0,0);
-  let dataUrl = workCanvas.toDataURL('image/jpeg', 0.95);
-  loadMainImage(dataUrl);
+function captureFrame(){
+  if (!stream) return alert('Abra a câmera primeiro ou faça upload de uma imagem');
+  const track = stream.getVideoTracks()[0];
+  const settings = track.getSettings();
+  const w = settings.width || video.videoWidth;
+  const h = settings.height || video.videoHeight;
+  // draw into canvas then to dataURL
+  let c = document.createElement('canvas'); c.width = w; c.height = h;
+  let ctx = c.getContext('2d'); ctx.drawImage(video,0,0,w,h);
+  let dataUrl = c.toDataURL('image/jpeg', 0.95);
+  loadImageFromDataUrl(dataUrl);
 }
 
-fileInput.onchange = async (e) => {
+// File upload
+fileInput.onchange = (e)=>{
   const f = e.target.files[0];
   if (!f) return;
-  if (f.type === 'application/pdf') {
-    // Try converting first page to image using <embed> trick not reliable; ask user to upload image if PDF.
-    alert('Recebi PDF. Recomendo exportar a página como imagem (PNG/JPG) e fazer upload — se preferir, eu posso adaptar para ler PDF diretamente, me avise.');
-    return;
-  }
+  if (f.type === 'application/pdf') { alert('Envie uma imagem (PNG/JPG) da ficha recortada.'); return; }
   const reader = new FileReader();
-  reader.onload = ()=> loadMainImage(reader.result);
+  reader.onload = ()=> loadImageFromDataUrl(reader.result);
   reader.readAsDataURL(f);
 };
 
-function loadMainImage(dataUrl){
-  mainImg.src = dataUrl;
-  mainImg.onload = ()=>{
-    overlay.width = mainImg.clientWidth;
-    overlay.height = mainImg.clientHeight;
-    overlay.style.left = mainImg.offsetLeft + 'px';
-    overlay.style.top = mainImg.offsetTop + 'px';
-    overlay.style.width = mainImg.clientWidth + 'px';
-    overlay.style.height = mainImg.clientHeight + 'px';
-    // reset click state
-    points = []; currentClicks=0; drawOverlay();
-    log('Imagem carregada. Clique 4 cantos por gabarito (total 12).');
+function loadImageFromDataUrl(dataUrl){
+  previewImg.src = dataUrl;
+  previewImg.onload = ()=>{
+    imgNaturalW = previewImg.naturalWidth;
+    imgNaturalH = previewImg.naturalHeight;
+    overlay.width = previewImg.clientWidth;
+    overlay.height = previewImg.clientHeight;
+    overlay.style.left = previewImg.offsetLeft + 'px';
+    overlay.style.top = previewImg.offsetTop + 'px';
+    clicks = [];
+    drawOverlay();
+    log('Imagem carregada. Toque 4 cantos do gabarito na imagem.');
   };
 }
 
-// click handling (map clicks to image natural coordinates)
-mainImg.addEventListener('click', (ev)=>{
-  if (!mainImg.src) return;
-  // compute coords relative to image displayed
-  const rect = mainImg.getBoundingClientRect();
+// map clicks to natural image coordinates
+previewImg.addEventListener('click', (ev)=>{
+  if (!previewImg.src) return;
+  const rect = previewImg.getBoundingClientRect();
   let x = ev.clientX - rect.left;
   let y = ev.clientY - rect.top;
-  // convert to natural coordinates
-  let nx = x * (mainImg.naturalWidth / rect.width);
-  let ny = y * (mainImg.naturalHeight / rect.height);
-  // assign to current gabarito: find index = floor(currentClicks/4)
-  let gIndex = Math.floor(currentClicks / 4);
-  if (!points[gIndex]) points[gIndex] = [];
-  points[gIndex].push({x: nx, y: ny});
-  currentClicks++;
+  let nx = x * (previewImg.naturalWidth / rect.width);
+  let ny = y * (previewImg.naturalHeight / rect.height);
+  if (clicks.length >= 4) { clicks = []; } // reset if user wants to re-click
+  clicks.push({x:nx,y:ny});
   drawOverlay();
-  if (currentClicks >= 12) log('12 cliques recebidos — pronto para processar. Clique "Processar".');
+  if (clicks.length === 4) log('4 cantos recebidos. Agora clique em PROCESSAR.');
 });
 
+// draw overlay dots & polygon
 function drawOverlay(){
   const ctx = overlay.getContext('2d');
-  overlay.width = mainImg.clientWidth;
-  overlay.height = mainImg.clientHeight;
+  overlay.width = previewImg.clientWidth;
+  overlay.height = previewImg.clientHeight;
   ctx.clearRect(0,0,overlay.width,overlay.height);
-  // scale factor
-  const sx = mainImg.clientWidth / mainImg.naturalWidth;
-  const sy = mainImg.clientHeight / mainImg.naturalHeight;
-  // draw points and polygons
-  for (let i=0;i<points.length;i++){
-    let poly = points[i];
-    if (!poly) continue;
+  if (!previewImg.src) return;
+  const sx = previewImg.clientWidth / previewImg.naturalWidth;
+  const sy = previewImg.clientHeight / previewImg.naturalHeight;
+  ctx.fillStyle = '#111';
+  ctx.strokeStyle = '#16a34a';
+  ctx.lineWidth = 3;
+  for (let i=0;i<clicks.length;i++){
+    let p = clicks[i];
+    let cx = p.x * sx, cy = p.y * sy;
+    ctx.beginPath(); ctx.arc(cx,cy,6,0,Math.PI*2); ctx.fill();
+  }
+  if (clicks.length === 4){
     ctx.beginPath();
-    ctx.strokeStyle = (poly.length===4) ? '#16a34a' : '#f59e0b';
-    ctx.lineWidth = 2;
-    for (let j=0;j<poly.length;j++){
-      let p = poly[j];
-      let cx = p.x * sx, cy = p.y * sy;
-      ctx.fillStyle = '#111';
-      ctx.beginPath(); ctx.arc(cx,cy,5,0,Math.PI*2); ctx.fill();
-      if (j===0) ctx.moveTo(cx,cy); else ctx.lineTo(cx,cy);
+    for (let i=0;i<4;i++){
+      let p = clicks[i]; let cx = p.x * sx, cy = p.y * sy;
+      if (i===0) ctx.moveTo(cx,cy); else ctx.lineTo(cx,cy);
     }
-    if (poly.length===4){ ctx.closePath(); ctx.stroke(); }
+    ctx.closePath(); ctx.stroke();
   }
 }
 
-// experimental auto-detect (tries to find 3 repeated blocks by scanning)
-// it's heuristic and may fail; we provide it as experimental
-modeAutoBtn.onclick = ()=>{
-  if (!mainImg.src) return alert('Carregue ou capture a imagem primeiro');
-  if (!cvReady) return alert('OpenCV.js ainda não pronto');
-  autoDetectThreeBlocks();
+// automatic detection: try to find largest quadrilateral contour (document-like)
+autoDetect.onclick = ()=>{
+  if (!previewImg.src) return alert('Carregue a imagem primeiro');
+  if (!cvReady) return alert('OpenCV ainda inicializando — aguarde alguns segundos e tente de novo.');
+  try {
+    let img = cv.imread(previewImg);
+    let gray = new cv.Mat(); cv.cvtColor(img, gray, cv.COLOR_RGBA2GRAY, 0);
+    let blur = new cv.Mat(); cv.GaussianBlur(gray, blur, new cv.Size(5,5), 0);
+    let edged = new cv.Mat(); cv.Canny(blur, edged, 50, 150);
+    let contours = new cv.MatVector(), hier = new cv.Mat();
+    cv.findContours(edged, contours, hier, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+    // find largest approx poly with 4 points
+    let best = null, bestArea = 0;
+    for (let i=0;i<contours.size();i++){
+      let c = contours.get(i);
+      let area = cv.contourArea(c);
+      if (area < 1000) { c.delete(); continue; }
+      let peri = cv.arcLength(c, true);
+      let approx = new cv.Mat();
+      cv.approxPolyDP(c, approx, 0.02 * peri, true);
+      if (approx.rows === 4 && area > bestArea){
+        bestArea = area; best = approx.clone();
+      }
+      approx.delete(); c.delete();
+    }
+    if (!best) {
+      alert('Não encontrou contorno quadrilateral com confiança. Tente o método manual (toque 4 cantos).');
+      img.delete(); gray.delete(); blur.delete(); edged.delete(); contours.delete(); hier.delete();
+      return;
+    }
+    // extract 4 points
+    let pts = [];
+    for (let i=0;i<4;i++){
+      let px = best.intPtr(i,0)[0], py = best.intPtr(i,0)[1];
+      pts.push({x:px,y:py});
+    }
+    clicks = pts;
+    drawOverlay();
+    alert('Contorno detectado. Reveja os pontos e clique Processar.');
+    img.delete(); gray.delete(); blur.delete(); edged.delete(); contours.delete(); hier.delete(); best.delete();
+  } catch(err){
+    alert('Erro na detecção automática: '+err);
+  }
 };
 
-function autoDetectThreeBlocks(){
-  // Read image into cv.Mat
-  let img = cv.imread(mainImg);
-  let gray = new cv.Mat();
-  cv.cvtColor(img, gray, cv.COLOR_RGBA2GRAY, 0);
-  // enhance contrast and threshold
-  let blur = new cv.Mat(); cv.GaussianBlur(gray, blur, new cv.Size(3,3), 0);
-  let th = new cv.Mat(); cv.adaptiveThreshold(blur, th, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY_INV, 25, 8);
-  // find contours and try to locate 3 large repeated rows with many small circles
-  let contours = new cv.MatVector(), hier = new cv.Mat();
-  cv.findContours(th, contours, hier, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-  // collect bounding rects with sufficient area and aspect close to wide rectangle
-  let rects = [];
-  for (let i=0;i<contours.size();i++){
-    let c = contours.get(i);
-    let area = cv.contourArea(c);
-    if (area < 2000) { c.delete(); continue; }
-    let r = cv.boundingRect(c);
-    let ar = r.width / r.height;
-    if (ar > 3 || (ar>1.2 && ar<10)) rects.push(r);
-    c.delete();
-  }
-  // sort by y (top->bottom), try pick 3 non-overlapping rects
-  rects.sort((a,b)=>a.y - b.y);
-  // merge close ones and pick up to 3
-  let merged = [];
-  rects.forEach(r=>{
-    if (!merged.length) merged.push(r);
-    else {
-      let last = merged[merged.length-1];
-      if (Math.abs(r.y - last.y) < last.height*0.6) {
-        // merge
-        let nx = Math.min(r.x, last.x), ny=Math.min(r.y,last.y);
-        let nw = Math.max(r.x+r.width, last.x+last.width)-nx;
-        let nh = Math.max(r.y+r.height, last.y+last.height)-ny;
-        merged[merged.length-1] = {x:nx,y:ny,width:nw,height:nh};
-      } else merged.push(r);
-    }
-  });
-  if (merged.length < 3){
-    alert('Detecção automática não encontrou 3 blocos claramente. Use o método de clicar 4 cantos por gabarito (recomendado).');
-    img.delete(); gray.delete(); blur.delete(); th.delete(); contours.delete(); hier.delete();
-    return;
-  }
-  // pick first 3 merged rects
-  points = [];
-  for (let i=0;i<3;i++){
-    let r = merged[i];
-    // convert rect corners to natural coords (they already are)
-    points[i] = [
-      {x:r.x, y:r.y},
-      {x:r.x + r.width, y:r.y},
-      {x:r.x + r.width, y:r.y + r.height},
-      {x:r.x, y:r.y + r.height}
-    ];
-  }
-  drawOverlay();
-  alert('Foram identificados 3 blocos. Reveja os cantos desenhados e ajuste manualmente se necessário. Em seguida clique em Processar.');
-  img.delete(); gray.delete(); blur.delete(); th.delete(); contours.delete(); hier.delete();
-}
-
-// ---- PROCESSAMENTO do gabarito (4x20) ----
-processBtn.onclick = async ()=>{
-  if (!mainImg.src) return alert('Carregue ou capture a imagem primeiro');
-  if (!cvReady) return alert('OpenCV.js ainda não pronto');
-  // ensure we have up to 3 regions with 4 points each
-  if (points.length < 3) return alert('Defina 4 cantos para cada um dos 3 gabaritos (total 12 cliques) ou use a detecção automática.');
-  for (let i=0;i<3;i++){
-    if (!points[i] || points[i].length!==4) return alert(`Gabarito ${i+1} incompleto (precisa 4 cantos).`);
-  }
-  // parse key? We'll ask user to paste JSON key via prompt (0=A,1=B,2=C,3=D)
-  let rawKey = prompt('Cole a chave como array JSON (ex: [0,1,2,3,...] com 20 valores). Se cancelar, usarei chave vazia (todas 0).');
+// main processing
+processBtn.onclick = ()=>{
+  if (!previewImg.src) return alert('Carregue ou capture a imagem antes');
+  if (clicks.length !== 4) return alert('Defina 4 cantos do gabarito (clicando na imagem) ou use detecção automática.');
+  if (!cvReady) return alert('OpenCV ainda inicializando — aguarde e tente de novo.');
+  // ask for key
+  let raw = prompt('Cole a chave JSON com 20 valores (ex: [0,1,2,3,...]) — 0=A,1=B,2=C,3=D. Se cancelar, uso chave vazia (todas A).');
   let key = null;
-  if (rawKey){
-    try { key = JSON.parse(rawKey); if (!Array.isArray(key) || key.length < 20) { alert('Chave inválida ou com menos de 20 itens. Usando chave vazia.'); key = null; } }
-    catch(e){ alert('Chave inválida. Usando chave vazia.'); key = null; }
+  if (raw){
+    try { key = JSON.parse(raw); if (!Array.isArray(key) || key.length < 20) { alert('Chave inválida ou com menos de 20 itens. Usarei chave vazia.'); key = null; } }
+    catch(e){ alert('Chave inválida. Usarei chave vazia.'); key = null; }
   }
-  if (!key) { key = new Array(20).fill(0); }
-  // process each region
-  resultsDiv.style.display='grid'; resultsDiv.innerHTML='';
-  for (let i=0;i<3;i++){
-    let res = processRegion(points[i], key, i+1);
-    // append card
-    const card = document.createElement('div'); card.className='card';
-    card.innerHTML = `<div style="display:flex;gap:8px;align-items:center"><div class="badge">Gabarito ${i+1}</div><div class="small">Score: ${res.correct}/${res.total} (${res.score}%)</div></div><div style="margin-top:8px"><canvas id="c${i}" width="${res.w}" height="${res.h}" style="max-width:100%;border:1px solid #ddd"></canvas></div><div style="margin-top:8px"><pre>${res.detail}</pre></div>`;
-    resultsDiv.appendChild(card);
-    // draw warped image into canvas
-    let outCanvas = document.getElementById('c'+i);
-    if (outCanvas) cv.imshow(outCanvas, res.warpMat);
-    // delete warpMat after showing
-    res.warpMat.delete();
-  }
-  log('Processamento concluído.');
+  if (!key) key = new Array(20).fill(0);
+  try {
+    let res = processSingleGabarito(clicks, key);
+    displayResult(res);
+  } catch(e){ alert('Erro no processamento: '+e); console.error(e); }
 };
 
-// processRegion: receives 4 points (natural image coords), key array
-function processRegion(pts, key, idx){
-  // pts order: user may click in any order -> we must order to tl,tr,br,bl
-  // compute centroid and assign quadrants
+// processSingleGabarito: warp and detect 4x20
+function processSingleGabarito(pts, key){
+  // order points to tl,tr,br,bl
   let cx = pts.reduce((s,p)=>s+p.x,0)/4, cy = pts.reduce((s,p)=>s+p.y,0)/4;
   let tl, tr, br, bl;
   pts.forEach(p=>{
@@ -303,69 +251,59 @@ function processRegion(pts, key, idx){
     else if (p.x > cx && p.y > cy) br = p;
     else if (p.x < cx && p.y > cy) bl = p;
   });
-  if (!tl || !tr || !br || !bl){
-    // fallback: use given order as-is
-    [tl,tr,br,bl] = pts;
-  }
-  // warp to standard size: width full A4 usable width — choose width=2000, height=300 (4cm height scaled)
-  // We'll choose width proportional to the detected width: compute average width from top and bottom
-  let wTop = Math.hypot(tr.x - tl.x, tr.y - tl.y);
-  let wBot = Math.hypot(br.x - bl.x, br.y - bl.y);
-  let avgW = Math.round((wTop + wBot)/2);
-  // set destination width to 1000px or avgW whichever larger
-  let dstW = Math.max(1000, Math.round(avgW));
-  let dstH = Math.round(dstW * 0.12); // approximate 4cm / 29.7cm -> ~0.135 ; use 0.12 to be safe
-  // build mats
-  let src = cv.imread(mainImg);
+  if (!tl || !tr || !br || !bl) { [tl,tr,br,bl] = pts; } // fallback
+
+  // determine destination size: A4 usable width scaled - choose width 1200px, height ~150px (4cm)
+  const dstW = 1200;
+  const dstH = Math.round(dstW * 0.12); // ~144px height for 4cm proportion
+  let srcMat = cv.imread(previewImg);
   let srcTri = cv.matFromArray(4,1,cv.CV_32FC2,[tl.x,tl.y, tr.x,tr.y, br.x,br.y, bl.x,bl.y]);
   let dstTri = cv.matFromArray(4,1,cv.CV_32FC2,[0,0, dstW-1,0, dstW-1,dstH-1, 0,dstH-1]);
   let M = cv.getPerspectiveTransform(srcTri, dstTri);
   let warped = new cv.Mat();
-  cv.warpPerspective(src, warped, M, new cv.Size(dstW, dstH));
+  cv.warpPerspective(srcMat, warped, M, new cv.Size(dstW, dstH));
+
   // preprocessing tuned for 3mm bubbles (small)
   let gray = new cv.Mat(); cv.cvtColor(warped, gray, cv.COLOR_RGBA2GRAY, 0);
   let blur = new cv.Mat(); cv.GaussianBlur(gray, blur, new cv.Size(3,3), 0);
   let th = new cv.Mat(); cv.adaptiveThreshold(blur, th, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 21, 7);
-  // find contours of blobs
+
+  // find contours
   let cnts = new cv.MatVector(), hier = new cv.Mat();
   cv.findContours(th, cnts, hier, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-  // parameters for 3mm: area small; compute expected bubble diameter in px roughly:
-  // approximate: if dstH corresponds to ~4cm and image DPI unknown, we'll rely on relative sizes:
-  // choose area between 20 and 5000 as candidate (tuneable)
   let candidates = [];
   for (let i=0;i<cnts.size();i++){
     let c = cnts.get(i);
     let area = cv.contourArea(c);
     if (area < 20 || area > 4000) { c.delete(); continue; }
     let rect = cv.boundingRect(c);
-    let perimeter = cv.arcLength(c, true);
-    if (perimeter === 0) { c.delete(); continue; }
-    let circularity = 4*Math.PI*area/(perimeter*perimeter);
-    if (circularity > 0.35) { // accept somewhat round
+    let peri = cv.arcLength(c, true);
+    if (peri === 0) { c.delete(); continue; }
+    let circularity = 4*Math.PI*area/(peri*peri);
+    if (circularity > 0.30) {
       candidates.push({c:c, area:area, rect:rect, cx:rect.x+rect.width/2, cy:rect.y+rect.height/2});
     } else { c.delete(); }
   }
-  // If too few candidates, relax threshold (try a second pass)
-  if (candidates.length < 60){
-    // second pass: include slightly less circular
+  // fallback: if too few, relax circularity
+  if (candidates.length < 30){
     for (let i=0;i<cnts.size();i++){
       let c = cnts.get(i);
       let area = cv.contourArea(c);
       if (area < 20 || area > 5000) continue;
       let rect = cv.boundingRect(c);
-      let perimeter = cv.arcLength(c, true);
-      if (perimeter === 0) continue;
-      let circularity = 4*Math.PI*area/(perimeter*perimeter);
-      if (circularity > 0.25 && !candidates.find(x=>x.rect.x===rect.x && x.rect.y===rect.y)){
+      let peri = cv.arcLength(c, true);
+      if (peri === 0) continue;
+      let circularity = 4*Math.PI*area/(peri*peri);
+      if (circularity > 0.22 && !candidates.find(x=>x.rect.x===rect.x && x.rect.y===rect.y)){
         candidates.push({c:c, area:area, rect:rect, cx:rect.x+rect.width/2, cy:rect.y+rect.height/2});
       }
     }
   }
-  // sort candidates by y then x
+
+  // sort and cluster into 4 rows
   candidates.sort((a,b)=>a.cy - b.cy || a.cx - b.cx);
-  // cluster into 4 rows
   let rows = [];
-  let yTol = Math.max(6, Math.round(dstH/60)); // tolerance relative to height
+  let yTol = Math.max(6, Math.round(dstH/60));
   candidates.forEach(pt=>{
     let placed=false;
     for (let r of rows){
@@ -373,89 +311,99 @@ function processRegion(pts, key, idx){
     }
     if (!placed) rows.push({avgY:pt.cy, items:[pt]});
   });
-  // If more than 4 rows, merge closest until 4
+  // reduce to 4 rows
   while (rows.length > 4){
-    let minGap=Infinity, idx=0;
     rows.sort((a,b)=>a.avgY - b.avgY);
+    let minGap=Infinity, idx=0;
     for (let i=0;i<rows.length-1;i++){
       let gap = Math.abs(rows[i+1].avgY - rows[i].avgY);
-      if (gap < minGap){ minGap=gap; idx=i; }
+      if (gap < minGap){ minGap = gap; idx = i; }
     }
-    // merge idx and idx+1
     let merged = {avgY:(rows[idx].avgY*rows[idx].items.length + rows[idx+1].avgY*rows[idx+1].items.length)/(rows[idx].items.length+rows[idx+1].items.length), items: rows[idx].items.concat(rows[idx+1].items)};
     rows.splice(idx,2,merged);
   }
-  // If less than 4 rows, we still proceed but will pad
   rows.sort((a,b)=>a.avgY - b.avgY);
-  // for each row, sort by x and pick 20 columns
-  let answersDetected = [];
+
+  // for each row get 20 columns
+  let answers = []; // will be 4 x 20 densities
   for (let r=0;r<4;r++){
     let row = rows[r] || {items:[]};
     row.items.sort((a,b)=>a.cx - b.cx);
-    // if more than 20 items, sample evenly; if less pad nulls
     let items = row.items;
     if (items.length > 20){
       let step = items.length / 20; let sel=[];
       for (let k=0;k<20;k++) sel.push(items[Math.floor(k*step)]);
       items = sel;
     } else if (items.length < 20){
-      // pad with nulls (so indexes align)
       while (items.length < 20) items.push(null);
     }
-    // compute density for each item
-    let densities = [];
+    let dens = [];
     for (let cidx=0;cidx<20;cidx++){
-      let c = items[cidx];
-      if (!c){ densities.push(0); continue; }
-      let rx = Math.max(0, c.rect.x-2), ry = Math.max(0, c.rect.y-2);
-      let rw = Math.min(th.cols - rx, c.rect.width+4), rh = Math.min(th.rows - ry, c.rect.height+4);
-      if (rw<=0 || rh<=0){ densities.push(0); continue; }
+      let it = items[cidx];
+      if (!it) { dens.push(0); continue; }
+      let rx = Math.max(0, it.rect.x-2), ry = Math.max(0, it.rect.y-2);
+      let rw = Math.min(th.cols - rx, it.rect.width+4), rh = Math.min(th.rows - ry, it.rect.height+4);
+      if (rw <= 0 || rh <= 0) { dens.push(0); continue; }
       let roi = th.roi(new cv.Rect(rx,ry,rw,rh));
       let nonZero = cv.countNonZero(roi);
-      let dens = nonZero / (rw*rh);
-      densities.push(dens);
+      let d = nonZero / (rw*rh);
+      dens.push(d);
       roi.delete();
     }
-    // store densities per column (these correspond to A..D rows)
-    answersDetected.push(densities);
+    answers.push(dens);
   }
-  // Now answersDetected is 4 x 20 (row per option). We need for each question choose which row has max density
-  let detectedByQuestion = [];
+
+  // decide per question
+  let detected = [];
   for (let q=0;q<20;q++){
-    let col = [answersDetected[0][q] || 0, answersDetected[1][q] || 0, answersDetected[2][q] || 0, answersDetected[3][q] || 0];
-    let maxD = Math.max(...col); let maxIdx = col.indexOf(maxD);
-    // threshold: since bubbles small, use lower threshold ~0.16; also check second best to detect ambiguous
-    let fillThreshold = 0.16;
+    let col = [answers[0][q]||0, answers[1][q]||0, answers[2][q]||0, answers[3][q]||0];
+    let maxD = Math.max(...col), idxMax = col.indexOf(maxD);
+    let fillThreshold = 0.16; // tuned for 3mm (may require real-photo tuning)
     if (maxD > fillThreshold){
-      // check ambiguity
+      // ambiguous check
       let sorted = col.slice().sort((a,b)=>b-a);
-      let ambiguous = (sorted[0] - sorted[1]) < 0.12; // if close, ambiguous
-      detectedByQuestion.push({selected:maxIdx, densities:col, ambiguous:ambiguous});
-    } else {
-      detectedByQuestion.push({selected:-1, densities:col, ambiguous:false});
-    }
+      let ambiguous = (sorted[0] - sorted[1]) < 0.12;
+      detected.push({selected:idxMax, densities:col, ambiguous:ambiguous});
+    } else detected.push({selected:-1, densities:col, ambiguous:false});
   }
+
   // compare with key
-  let correct = 0;
-  let details = [];
+  let correct=0; let details=[];
   for (let q=0;q<20;q++){
-    let det = detectedByQuestion[q];
-    let sel = det.selected;
-    let correctAns = (q < key.length) ? key[q] : null;
-    let dstr = det.densities.map(d=>d.toFixed(2)).join(',');
-    if (sel === -1) { details.push(`Q${q+1}: — não marcada | dens: [${dstr}]`); }
+    let d = detected[q]; let sel = d.selected; let ca = (q<key.length)? key[q] : null;
+    let densStr = d.densities.map(x=>x.toFixed(2)).join(',');
+    if (sel === -1) details.push(`Q${q+1}: — não marcada | dens: [${densStr}]`);
     else {
       let letter = String.fromCharCode(65+sel);
-      if (correctAns !== null && sel === correctAns){ correct++; details.push(`Q${q+1}: ${letter} ✅ | dens: [${dstr}]`); }
-      else { details.push(`Q${q+1}: ${letter} ❌ (correta=${String.fromCharCode(65+correctAns)}) | dens: [${dstr}]`); }
+      if (ca !== null && sel === ca){ correct++; details.push(`Q${q+1}: ${letter} ✅ | dens: [${densStr}]`); }
+      else details.push(`Q${q+1}: ${letter} ❌ (correta=${String.fromCharCode(65+ca)}) | dens: [${densStr}]`);
     }
   }
   let score = Math.round((correct/20)*100);
-  // prepare warpMat to return for preview
-  src.delete(); srcTri.delete(); dstTri.delete(); M.delete();
+
+  // cleanup some mats but return warped for preview (caller must delete)
+  srcMat.delete(); srcTri.delete(); dstTri.delete(); M.delete();
   gray.delete(); blur.delete(); th.delete(); cnts.delete(); hier.delete();
-  // warpMat is the warped variable; return it (caller will display then delete)
-  return {warpMat: warped, w: warped.cols, h: warped.rows, correct: correct, total:20, score:score, detail: details.join('\n')};
+
+  return {warp: warped, correct: correct, total:20, score: score, detail: details.join('\n')};
+}
+
+// display result in page
+function displayResult(res){
+  resultsArea.innerHTML = '';
+  const card = document.createElement('div'); card.className='resultsCard';
+  card.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>Resultado</strong><div class="small">Acertos: ${res.correct}/${res.total} — ${res.score}%</div></div><div><button id="downloadBtn" style="padding:8px 10px;border-radius:8px;border:0;background:#2563eb;color:#fff">Baixar imagem recortada</button></div></div><div style="margin-top:8px"><canvas id="outCanvas" width="${res.warp.cols}" height="${res.warp.rows}" style="max-width:100%;border:1px solid #ddd;border-radius:6px"></canvas></div><div style="margin-top:8px"><pre>${res.detail}</pre></div>`;
+  resultsArea.appendChild(card);
+  const outCanvas = document.getElementById('outCanvas');
+  cv.imshow(outCanvas, res.warp);
+  // download button
+  document.getElementById('downloadBtn').onclick = ()=>{
+    const dataUrl = outCanvas.toDataURL('image/png');
+    const a = document.createElement('a'); a.href = dataUrl; a.download = 'gabarito_recortado.png'; a.click();
+  };
+  // delete warp mat to avoid leaks
+  res.warp.delete();
+  log('Processamento finalizado.');
 }
 
 </script>
