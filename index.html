@@ -1,73 +1,450 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Acesso</title>
-    <link rel="stylesheet" href="css/style.css">
-    
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    
-    <!-- Configurações -->
-    <script src="js/firebase-config.js" defer></script>
-    <script src="js/auth.js" defer></script>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Leitor de Gabarito - Demo</title>
+<style>
+  body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;padding:16px;background:#f4f6f8;color:#111}
+  h1{font-size:20px;margin:0 0 12px}
+  #app{max-width:980px;margin:0 auto}
+  video, canvas{max-width:100%;border-radius:6px;border:1px solid #ddd}
+  .controls{display:flex;gap:8px;margin:8px 0 16px;flex-wrap:wrap}
+  button{padding:8px 12px;border-radius:6px;border:0;background:#2563eb;color:white;cursor:pointer}
+  button.secondary{background:#374151}
+  #resultInfo{margin-top:12px}
+  .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px}
+  .bubble{width:40px;height:40px;border-radius:50%;border:2px solid #ddd;display:flex;align-items:center;justify-content:center}
+  .correct{background:#dcfce7;border-color:#16a34a}
+  .wrong{background:#fee2e2;border-color:#ef4444}
+  .unknown{background:#fff3cd;border-color:#f59e0b}
+  label{display:block;margin-top:8px}
+  input[type=number]{width:80px}
+  #hint{font-size:13px;color:#555;margin-top:8px}
+  #keyInput{width:100%;height:80px}
+  .small{font-size:13px;color:#666}
+</style>
 </head>
 <body>
-    <div class="container">
-        <div class="login-box">
-            <h1>Acesso ao Sistema</h1>
-            
-            <form id="loginForm">
-                <div class="input-group">
-                    <label for="userId">ID do Usuário:</label>
-                    <input 
-                        type="text" 
-                        id="userId" 
-                        name="userId" 
-                        required 
-                        placeholder="Digite seu ID"
-                        autocomplete="username"
-                    >
-                </div>
+<div id="app">
+  <h1>Leitor de Gabarito (demo) — câmera</h1>
 
-                <div class="input-group">
-                    <label for="password">Senha:</label>
-                    <input 
-                        type="password" 
-                        id="password" 
-                        name="password" 
-                        placeholder="Digite sua senha"
-                        autocomplete="current-password"
-                        disabled
-                    >
-                </div>
+  <div>
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas" style="display:none"></canvas>
+  </div>
 
-                <div id="resetMessage" class="reset-message hidden">
-                    <p>⚠️ Sua senha precisa ser resetada. Clique em "Esqueci minha senha" para continuar.</p>
-                </div>
+  <div class="controls">
+    <button id="startBtn">Iniciar câmera</button>
+    <button id="captureBtn" class="secondary">Capturar</button>
+    <button id="processBtn" class="secondary">Processar imagem</button>
+    <button id="downloadBtn" style="display:none">Baixar resultado</button>
+  </div>
 
-                <div class="buttons-group">
-                    <button type="submit" id="accessBtn" class="btn btn-primary" disabled>
-                        Acessar
-                    </button>
-                    
-                    <button type="button" id="forgotPasswordBtn" class="btn btn-secondary" disabled>
-                        Esqueci minha senha
-                    </button>
-                </div>
-            </form>
+  <div>
+    <label>Nº de questões:
+      <input id="numQ" type="number" value="10" min="1" step="1" />
+    </label>
+    <label>Alternativas (por questão):
+      <input id="numOpt" type="number" value="4" min="2" max="6" />
+    </label>
 
-            <div id="loading" class="loading hidden">
-                <div class="loading-spinner"></div>
-                <p>Verificando...</p>
-            </div>
+    <label>Chave (JSON) — ex: [1,0,2,3,...] (0 = A, 1 = B, ...):
+      <textarea id="keyInput">[1,0,2,3,0,1,2,3,0,1]</textarea>
+    </label>
 
-            <div id="errorMessage" class="error-message hidden"></div>
-            <div id="successMessage" class="success-message hidden"></div>
-        </div>
+    <div id="hint" class="small">
+      Dica: coloque 4 quadrados pretos nos 4 cantos do gabarito para alinhamento.
     </div>
+  </div>
+
+  <div id="resultInfo"></div>
+
+  <h2 style="margin-top:18px;font-size:16px">Preview (imagem capturada)</h2>
+  <canvas id="preview" width="800" height="1100"></canvas>
+
+  <h2 style="margin-top:14px;font-size:16px">Marcação das questões</h2>
+  <div id="markings"></div>
+
+  <div style="margin-top:20px" class="small">
+    <strong>Atenção:</strong> Este é um protótipo. Em condições reais ajuste diâmetros, limiares e iluminação para maior robustez.
+  </div>
+</div>
+
+<!-- OpenCV.js CDN (gratuito). Se desejar, hospede localmente a versão opencv.js para offline. -->
+<script async src="https://docs.opencv.org/4.x/opencv.js" onload="onOpenCvReady();" ></script>
+
+<script>
+/* Leitor de gabarito - usando OpenCV.js
+   Notas:
+   - Detecta 4 marcadores quadrados pretos nos cantos para fazer warpPerspective.
+   - Depois procura por blobs/círculos na área corrigida e os organiza em grid (N linhas x M colunas).
+   - Para cada célula calcula proporção de pixels escuros para decidir preenchimento.
+*/
+let video = document.getElementById('video');
+let canvas = document.getElementById('canvas');
+let preview = document.getElementById('preview');
+let ctx = canvas.getContext('2d');
+let pctx = preview.getContext('2d');
+let stream = null;
+let cvReady = false;
+
+function onOpenCvReady(){
+  cv['onRuntimeInitialized']=()=>{
+    cvReady = true;
+    console.log('OpenCV.js ready');
+  }
+}
+
+document.getElementById('startBtn').addEventListener('click', async ()=>{
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert('Navegador sem suporte a câmera via getUserMedia');
+    return;
+  }
+  stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}, audio:false});
+  video.srcObject = stream;
+  await video.play();
+});
+
+document.getElementById('captureBtn').addEventListener('click', ()=>{
+  if (!video.srcObject) { alert('Inicie a câmera primeiro'); return; }
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  // mostrar no preview
+  preview.width = canvas.width;
+  preview.height = canvas.height;
+  pctx.drawImage(canvas,0,0);
+  document.getElementById('resultInfo').innerText = 'Imagem capturada. Clique em "Processar imagem".';
+});
+
+document.getElementById('processBtn').addEventListener('click', async ()=>{
+  if (!cvReady) { alert('OpenCV ainda não pronto. Aguarde alguns segundos e tente de novo.'); return; }
+  if (canvas.width === 0) { alert('Capture uma imagem antes.'); return; }
+  try {
+    processImage();
+  } catch (err) {
+    console.error(err);
+    alert('Erro ao processar imagem: ' + err.message);
+  }
+});
+
+function parseKey(){
+  let raw = document.getElementById('keyInput').value;
+  try {
+    let arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) throw 'Chave deve ser um array';
+    return arr.map(x=>parseInt(x));
+  } catch(e){
+    alert('Chave inválida: ' + e);
+    return null;
+  }
+}
+
+function processImage(){
+  let key = parseKey();
+  if (!key) return;
+  let N = parseInt(document.getElementById('numQ').value,10);
+  let M = parseInt(document.getElementById('numOpt').value,10);
+  // make src mat
+  let src = cv.imread(canvas);
+  let orig = src.clone();
+  // resize if too big to save CPU
+  const MAXW = 1200;
+  if (src.cols > MAXW) {
+    let scale = MAXW / src.cols;
+    cv.resize(src, src, new cv.Size(0,0), scale, scale, cv.INTER_AREA);
+  }
+
+  // preprocessing
+  let gray = new cv.Mat();
+  cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+  let blur = new cv.Mat();
+  cv.GaussianBlur(gray, blur, new cv.Size(5,5), 0);
+
+  // threshold to find markers
+  let thresh = new cv.Mat();
+  cv.adaptiveThreshold(blur, thresh, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY_INV, 31, 7);
+
+  // find contours
+  let contours = new cv.MatVector();
+  let hierarchy = new cv.Mat();
+  cv.findContours(thresh, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+
+  // find big square-like contours (markers) -> assume 4 largest roughly square shapes
+  let squares = [];
+  for (let i=0;i<contours.size();i++){
+    let cnt = contours.get(i);
+    let area = cv.contourArea(cnt);
+    if (area < 1000) { cnt.delete(); continue; } // ignore small
+    let peri = cv.arcLength(cnt, true);
+    let approx = new cv.Mat();
+    cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
+    if (approx.rows === 4) {
+      // check squareness
+      let rect = cv.boundingRect(approx);
+      let ar = rect.width / rect.height;
+      if (ar > 0.6 && ar < 1.6) {
+        // center
+        squares.push({area: area, rect: rect, cnt: approx});
+      } else {
+        approx.delete();
+      }
+    } else {
+      approx.delete();
+    }
+    cnt.delete();
+  }
+  // sort descending by area
+  squares.sort((a,b)=>b.area - a.area);
+  let markers = squares.slice(0,4);
+  if (markers.length < 4) {
+    // fallback: try detect document by big contour
+    let docPts = tryFindDocContour(contours);
+    if (!docPts) {
+      cleanup([src, orig, gray, blur, thresh, contours, hierarchy]);
+      alert('Não encontrou 4 marcadores nos cantos. Verifique se existem 4 quadrados pretos nos cantos do gabarito.');
+      return;
+    } else {
+      // docPts is array of 4 points
+      markers = docPts.map(p=>({rect:{x:p.x,y:p.y,width:10,height:10},cnt:null,area:0}));
+    }
+  }
+
+  // get 4 corner points from markers' centers
+  let pts = markers.map(m=>{
+    if (m.cnt) {
+      let moments = cv.moments(m.cnt);
+      let cx = moments.m10 / moments.m00;
+      let cy = moments.m01 / moments.m00;
+      return {x: cx, y: cy};
+    } else {
+      // fallback
+      return {x: m.rect.x + m.rect.width/2, y: m.rect.y + m.rect.height/2};
+    }
+  });
+
+  // ensure we have 4 and determine order: tl,tr,br,bl
+  if (pts.length !== 4) {
+    cleanup([src, orig, gray, blur, thresh, contours, hierarchy]);
+    alert('Não foi possível identificar 4 pontos de referência.');
+    return;
+  }
+  // compute centroid
+  let cx = pts.reduce((s,p)=>s+p.x,0)/4;
+  let cy = pts.reduce((s,p)=>s+p.y,0)/4;
+  let tl, tr, br, bl;
+  pts.forEach(p=>{
+    if (p.x < cx && p.y < cy) tl = p;
+    else if (p.x > cx && p.y < cy) tr = p;
+    else if (p.x > cx && p.y > cy) br = p;
+    else if (p.x < cx && p.y > cy) bl = p;
+  });
+
+  if (!tl || !tr || !br || !bl) {
+    cleanup([src, orig, gray, blur, thresh, contours, hierarchy]);
+    alert('Erro ao ordenar os marcadores. Certifique-se de que os 4 marcadores estão um em cada canto.');
+    return;
+  }
+
+  // warp perspective: define destination size (A4-like)
+  let width = 800;
+  let height = 1100;
+  let srcTri = cv.matFromArray(4,1,cv.CV_32FC2,[tl.x,tl.y, tr.x,tr.y, br.x,br.y, bl.x,bl.y]);
+  let dstTri = cv.matFromArray(4,1,cv.CV_32FC2,[0,0, width,0, width,height, 0,height]);
+  let Mwarp = cv.getPerspectiveTransform(srcTri, dstTri);
+  let warped = new cv.Mat();
+  cv.warpPerspective(src, warped, Mwarp, new cv.Size(width, height));
+
+  // show warped into preview
+  cv.imshow('preview', warped);
+
+  // now detect bubbles in warped image
+  let gwar = new cv.Mat();
+  cv.cvtColor(warped, gwar, cv.COLOR_RGBA2GRAY, 0);
+  let gblur = new cv.Mat();
+  cv.GaussianBlur(gwar, gblur, new cv.Size(5,5), 0);
+  let gwth = new cv.Mat();
+  cv.adaptiveThreshold(gblur, gwth, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 25, 7);
+
+  // find contours again
+  let cnts2 = new cv.MatVector();
+  let hier2 = new cv.Mat();
+  cv.findContours(gwth, cnts2, hier2, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+  // collect candidate circular blobs by area and circularity
+  let candidates = [];
+  for (let i=0;i<cnts2.size();i++){
+    let c = cnts2.get(i);
+    let area = cv.contourArea(c);
+    if (area < 50 || area > 20000) { c.delete(); continue; } // tune thresholds
+    let perimeter = cv.arcLength(c, true);
+    if (perimeter === 0) { c.delete(); continue; }
+    let circularity = 4*Math.PI*area/(perimeter*perimeter);
+    if (circularity > 0.45) { // roughly circular
+      let rect = cv.boundingRect(c);
+      candidates.push({c:c, area:area, rect:rect, cx:rect.x+rect.width/2, cy:rect.y+rect.height/2});
+    } else {
+      c.delete();
+    }
+  }
+
+  if (candidates.length < N*M*0.6) {
+    // could be lower detection; still try proceed but warn
+    console.warn('Poucos candidatos detectados', candidates.length);
+    document.getElementById('resultInfo').innerText = 'Atenção: poucas bolinhas detectadas ('+candidates.length+'). Verifique iluminação, contraste e tamanho das bolinhas.';
+  }
+
+  // sort candidates into grid: first by y then by x
+  candidates.sort((a,b)=>a.cy - b.cy || a.cx - b.cx);
+
+  // group rows by clustering on y
+  let rows = [];
+  let tolerance = 20; // pixels
+  candidates.forEach(pt=>{
+    let placed = false;
+    for (let r of rows){
+      if (Math.abs(pt.cy - r.avgY) < tolerance) {
+        r.items.push(pt);
+        r.avgY = (r.avgY*(r.items.length-1) + pt.cy)/r.items.length;
+        placed = true; break;
+      }
+    }
+    if (!placed) rows.push({avgY:pt.cy, items:[pt]});
+  });
+
+  // ensure we have N rows - if more, try merge/slice
+  if (rows.length > N) {
+    // try to merge by taking closest N rows by spacing
+    rows.sort((a,b)=>a.avgY - b.avgY);
+    // if more rows, try to compress by merging nearest
+    while (rows.length > N) {
+      // merge smallest gap
+      let minGap=Infinity, idx=0;
+      for (let i=0;i<rows.length-1;i++){
+        let gap = Math.abs(rows[i+1].avgY - rows[i].avgY);
+        if (gap < minGap){minGap=gap; idx=i;}
+      }
+      // merge idx and idx+1
+      let merged = {avgY:(rows[idx].avgY*rows[idx].items.length + rows[idx+1].avgY*rows[idx+1].items.length)/(rows[idx].items.length+rows[idx+1].items.length), items: rows[idx].items.concat(rows[idx+1].items)};
+      rows.splice(idx,2,merged);
+    }
+  }
+
+  // sort rows top->bottom
+  rows.sort((a,b)=>a.avgY - b.avgY);
+
+  // for each row, sort items left->right and pick first M items
+  let answersDetected = [];
+  for (let r=0; r<Math.min(N,rows.length); r++){
+    let row = rows[r];
+    row.items.sort((a,b)=>a.cx - b.cx);
+    // if more items than M, try to cluster by x into M groups
+    let cells = row.items;
+    if (cells.length < M) {
+      // pad with nulls
+      while (cells.length < M) cells.push(null);
+    } else if (cells.length > M) {
+      // reduce by selecting M most evenly spaced (simple approach)
+      let step = cells.length / M;
+      let sel=[];
+      for (let k=0;k<M;k++){
+        sel.push(cells[Math.floor(k*step)]);
+      }
+      cells = sel;
+    } else {
+      // exact M
+    }
+    // compute fill for each cell by cropping gwth and counting non-zero pixels
+    let selectedAnswers = -1;
+    let densities = [];
+    for (let cidx=0;cidx<M;cidx++){
+      let c = cells[cidx];
+      if (!c) { densities.push(0); continue; }
+      let rx = Math.max(0,c.rect.x-2), ry = Math.max(0,c.rect.y-2);
+      let rw = Math.min(gwth.cols - rx, c.rect.width+4), rh = Math.min(gwth.rows - ry, c.rect.height+4);
+      let roi = gwth.roi(new cv.Rect(rx,ry,rw,rh));
+      let nonZero = cv.countNonZero(roi);
+      let area = rw*rh;
+      let dens = nonZero/area;
+      densities.push(dens);
+      roi.delete();
+    }
+    // detect max density and check threshold
+    let maxD = Math.max(...densities);
+    let maxIdx = densities.indexOf(maxD);
+    let fillThreshold = 0.28; // tune: fraction of area that indicates filled
+    if (maxD > fillThreshold) selectedAnswers = maxIdx;
+    else selectedAnswers = -1;
+    answersDetected.push({selected:selectedAnswers, densities:densities});
+  }
+
+  // compare with key
+  let correct = 0;
+  let total = N;
+  let markingsDiv = document.getElementById('markings');
+  markingsDiv.innerHTML = '';
+  for (let i=0;i<N;i++){
+    let qDiv = document.createElement('div');
+    qDiv.style.marginBottom='6px';
+    let sel = (i < answersDetected.length) ? answersDetected[i].selected : -1;
+    let correctAns = (i < key.length) ? key[i] : null;
+    let html = `<strong>Q${i+1}:</strong> `;
+    if (sel === -1) {
+      html += `<span class="unknown">não marcada</span> `;
+    } else {
+      if (correctAns !== null && sel === correctAns) {
+        html += `<span class="correct">marcou ${String.fromCharCode(65+sel)} (correta)</span> `;
+        correct++;
+      } else {
+        html += `<span class="wrong">marcou ${String.fromCharCode(65+sel)} (incorreta)</span> `;
+      }
+    }
+    html += ` &nbsp; <span class="small">densidades: ${ (answersDetected[i] ? answersDetected[i].densities.map(d=>d.toFixed(2)).join(', ') : '—') }</span>`;
+    qDiv.innerHTML = html;
+    markingsDiv.appendChild(qDiv);
+  }
+
+  let score = Math.round((correct/total)*100);
+  document.getElementById('resultInfo').innerHTML = `<strong>Resultado: ${correct}/${total} — ${score}%</strong>`;
+
+  // cleanup mats
+  cleanup([src, orig, gray, blur, thresh, contours, hierarchy, srcTri, dstTri, Mwarp, warped, gwar, gblur, gwth, cnts2, hier2]);
+  // delete candidate contours
+  candidates.forEach(c=>{ if (c.c) c.c.delete(); });
+}
+
+// try to find single large contour (document) and return 4 corner points
+function tryFindDocContour(contours){
+  let bestArea = 0; let bestCnt=null;
+  for (let i=0;i<contours.size();i++){
+    let c = contours.get(i);
+    let area = cv.contourArea(c);
+    if (area > bestArea) { bestArea = area; bestCnt = c; }
+  }
+  if (!bestCnt) return null;
+  let peri = cv.arcLength(bestCnt, true);
+  let approx = new cv.Mat();
+  cv.approxPolyDP(bestCnt, approx, 0.02*peri, true);
+  if (approx.rows === 4){
+    let pts = [];
+    for (let i=0;i<4;i++){
+      pts.push({x: approx.intPtr(i,0)[0], y: approx.intPtr(i,0)[1]});
+    }
+    approx.delete();
+    bestCnt.delete();
+    return pts;
+  }
+  approx.delete();
+  bestCnt.delete();
+  return null;
+}
+
+function cleanup(mats){
+  mats.forEach(m=>{
+    try{ if (m && typeof m.delete === 'function') m.delete(); } catch(e){}
+  });
+}
+</script>
 </body>
 </html>

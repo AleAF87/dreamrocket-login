@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Acesso</title>
+    <link rel="stylesheet" href="css/style.css">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    
+    <!-- Configurações -->
+    <script src="js/firebase-config.js" defer></script>
+    <script src="js/auth.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <div class="login-box">
+            <h1>Acesso ao Sistema</h1>
+            
+            <form id="loginForm">
+                <div class="input-group">
+                    <label for="userId">ID do Usuário:</label>
+                    <input 
+                        type="text" 
+                        id="userId" 
+                        name="userId" 
+                        required 
+                        placeholder="Digite seu ID"
+                        autocomplete="username"
+                    >
+                </div>
+
+                <div class="input-group">
+                    <label for="password">Senha:</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        placeholder="Digite sua senha"
+                        autocomplete="current-password"
+                        disabled
+                    >
+                </div>
+
+                <div id="resetMessage" class="reset-message hidden">
+                    <p>⚠️ Sua senha precisa ser resetada. Clique em "Esqueci minha senha" para continuar.</p>
+                </div>
+
+                <div class="buttons-group">
+                    <button type="submit" id="accessBtn" class="btn btn-primary" disabled>
+                        Acessar
+                    </button>
+                    
+                    <button type="button" id="forgotPasswordBtn" class="btn btn-secondary" disabled>
+                        Esqueci minha senha
+                    </button>
+                </div>
+            </form>
+
+            <div id="loading" class="loading hidden">
+                <div class="loading-spinner"></div>
+                <p>Verificando...</p>
+            </div>
+
+            <div id="errorMessage" class="error-message hidden"></div>
+            <div id="successMessage" class="success-message hidden"></div>
+        </div>
+    </div>
+</body>
+</html>
