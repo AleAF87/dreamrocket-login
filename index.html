@@ -1,440 +1,94 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Leitor de Gabarito 4×20 — Mobile</title>
-<style>
-  :root{--bg:#fbfdff;--accent:#0ea5e9;--dark:#0f172a;--muted:#6b7280}
-  body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:var(--bg);color:var(--dark);-webkit-font-smoothing:antialiased}
-  .wrap{max-width:860px;margin:0 auto;padding:14px}
-  h1{font-size:18px;margin:6px 0}
-  p.help{font-size:13px;color:var(--muted);margin:6px 0 12px}
-  #video, #previewImg, canvas.previewCanvas{width:100%;border-radius:12px;border:1px solid #e6eef6;background:white}
-  .controls{display:block;margin-top:12px}
-  .btn{display:block;width:100%;padding:16px;border-radius:12px;border:0;margin:10px 0;font-size:18px;background:var(--accent);color:white;text-align:center}
-  .btn.secondary{background:#374151}
-  .small{font-size:13px;color:var(--muted)}
-  #overlay{position:absolute;pointer-events:none}
-  .topRow{display:flex;gap:8px}
-  .col{flex:1}
-  .resultCard{background:white;border-radius:10px;padding:10px;margin-top:12px;box-shadow:0 6px 18px rgba(13,38,59,0.06)}
-  pre{background:#0b1220;color:#dbeafe;padding:8px;border-radius:8px;overflow:auto}
-  @media(min-width:860px){
-    .wrap{padding:20px}
-    h1{font-size:22px}
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Upload de Arquivos</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .box { border: 1px solid #ccc; padding: 20px; border-radius: 8px; max-width: 400px; }
+    button { padding: 10px 15px; margin-top: 10px; cursor: pointer; }
+    textarea { width: 100%; height: 150px; margin-top: 10px; }
+  </style>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+
+  <script>
+    // 🔥 SUBSTITUA PELOS SEUS DADOS
+    const firebaseConfig = {
+      apiKey: "SUA_APIKEY_AQUI",
+      authDomain: "SEU_AUTHDOMAIN.firebaseapp.com",
+      projectId: "SEU_PROJECTID",
+      storageBucket: "SEU_BUCKET.appspot.com",
+      messagingSenderId: "SEU_SENDER_ID",
+      appId: "SEU_APP_ID"
+    };
+
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+  </script>
 </head>
+
 <body>
-<div class="wrap">
-  <h1>Leitor de Gabarito 4×20 — Mobile</h1>
-  <p class="help">Use seu celular: posicione a câmera sobre o gabarito cortado (uma folha por foto). Botão grande para capturar. Se o template tiver 4 marcadores pretos (quadradinhos) nos cantos a leitura será totalmente automática. Caso contrário, após a foto toque 4 pontos nos cantos do gabarito para o recorte.</p>
+  <h2>Upload de Arquivos</h2>
 
-  <!-- video preview (camera) -->
-  <video id="video" autoplay playsinline style="display:block"></video>
+  <div class="box">
+    <label>Selecione uma imagem:</label><br />
+    <input type="file" id="imgInput" accept="image/*" /><br /><br />
 
-  <!-- image preview area -->
-  <div style="position:relative;margin-top:10px">
-    <img id="previewImg" src="" alt="Preview" style="display:none" />
-    <canvas id="overlay" style="display:none;position:absolute;left:0;top:0"></canvas>
+    <label>Selecione um PDF:</label><br />
+    <input type="file" id="pdfInput" accept="application/pdf" /><br /><br />
+
+    <button onclick="uploadImagem()">Enviar Imagem</button>
+    <button onclick="uploadPDF()">Enviar PDF</button>
+
+    <h3>Hash gerado:</h3>
+    <textarea id="output" readonly></textarea>
   </div>
-
-  <div class="controls">
-    <button id="startCam" class="btn">Abrir câmera (ambiente)</button>
-    <button id="captureBtn" class="btn secondary">Capturar foto</button>
-    <label class="small" style="margin-top:6px">ou faça upload da imagem:</label>
-    <input id="fileInput" type="file" accept="image/*" style="width:100%;padding:10px;border-radius:8px;margin-top:6px" />
-    <button id="autoDetectBtn" class="btn" style="background:#f59e0b">Detectar e processar automaticamente</button>
-    <button id="processBtn" class="btn secondary">Processar (usar cantos definidos)</button>
-  </div>
-
-  <div id="instructions" class="small" style="margin-top:6px">Fluxo recomendado: 1) abra câmera ou faça upload; 2) alinhe e capture; 3) clique 'Detectar e processar' (se seu template tiver marcadores). Caso não tenha marcadores, após a foto toque 4 vezes nos cantos do gabarito (A partir do canto superior-esquerdo, no sentido horário ou qualquer ordem — o script ordena).</div>
-
-  <div id="resultArea" style="margin-top:12px;display:none">
-    <div class="resultCard">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div><strong id="scoreLabel">Resultado</strong><div class="small" id="summarySmall"></div></div>
-        <div><button id="downloadCSV" class="btn secondary" style="padding:8px 12px;font-size:14px;width:auto">Exportar CSV</button></div>
-      </div>
-      <div style="margin-top:8px"><canvas id="previewCanvas" class="previewCanvas"></canvas></div>
-      <div style="margin-top:8px"><pre id="detailPre"></pre></div>
-    </div>
-  </div>
-
-</div>
-
-<!-- OpenCV.js -->
-<script async src="https://docs.opencv.org/4.x/opencv.js" onload="onOpenCvReady()"></script>
 
 <script>
-let cvReady = false;
-function onOpenCvReady(){ cv['onRuntimeInitialized'] = ()=>{ cvReady = true; console.log('OpenCV ready'); }; }
-
-const video = document.getElementById('video');
-const startCam = document.getElementById('startCam');
-const captureBtn = document.getElementById('captureBtn');
-const fileInput = document.getElementById('fileInput');
-const previewImg = document.getElementById('previewImg');
-const overlay = document.getElementById('overlay');
-const autoDetectBtn = document.getElementById('autoDetectBtn');
-const processBtn = document.getElementById('processBtn');
-const resultArea = document.getElementById('resultArea');
-const previewCanvas = document.getElementById('previewCanvas');
-const detailPre = document.getElementById('detailPre');
-const scoreLabel = document.getElementById('scoreLabel');
-const summarySmall = document.getElementById('summarySmall');
-const downloadCSV = document.getElementById('downloadCSV');
-
-let stream = null;
-let clickPoints = []; // up to 4 points (natural coords)
-let naturalScale = 1;
-
-// start camera (mobile back camera)
-startCam.addEventListener('click', async ()=>{
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return alert('Seu navegador não suporta câmera.');
-  try{
-    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment', width:{ideal:1280}}, audio:false});
-    video.srcObject = stream;
-    await video.play();
-    video.style.display = 'block';
-    previewImg.style.display = 'none';
-    overlay.style.display = 'none';
-  }catch(e){ alert('Erro abrindo câmera: '+e.message); }
-});
-
-// capture frame
-captureBtn.addEventListener('click', async ()=>{
-  if (!video.srcObject) { alert('Abra a câmera primeiro ou faça upload de uma imagem'); return; }
-  const w = video.videoWidth, h = video.videoHeight;
-  const cvCanvas = document.createElement('canvas'); cvCanvas.width = w; cvCanvas.height = h;
-  const ctx = cvCanvas.getContext('2d'); ctx.drawImage(video,0,0,w,h);
-  const data = cvCanvas.toDataURL('image/jpeg', 0.95);
-  loadPreviewImage(data);
-});
-
-// file upload
-fileInput.addEventListener('change', (e)=>{
-  const f = e.target.files[0]; if (!f) return;
+function fileToBase64(file, callback) {
   const reader = new FileReader();
-  reader.onload = ()=> loadPreviewImage(reader.result);
-  reader.readAsDataURL(f);
-});
-
-function loadPreviewImage(dataUrl){
-  previewImg.src = dataUrl;
-  previewImg.onload = ()=>{
-    previewImg.style.display = 'block';
-    // configure overlay size & clear points
-    overlay.width = previewImg.clientWidth; overlay.height = previewImg.clientHeight;
-    overlay.style.left = previewImg.offsetLeft + 'px'; overlay.style.top = previewImg.offsetTop + 'px';
-    overlay.style.display = 'block';
-    clickPoints = [];
-    naturalScale = previewImg.naturalWidth / previewImg.clientWidth;
-    drawOverlay();
-    // hide camera display to avoid confusion
-    if (video.srcObject) { video.pause(); video.srcObject.getTracks().forEach(t=>t.stop()); video.srcObject = null; }
-  };
+  reader.onload = () => callback(reader.result);
+  reader.readAsDataURL(file);
 }
 
-// tap to set corners (natural coordinates)
-previewImg.addEventListener('click', (ev)=>{
-  if (!previewImg.src) return;
-  const rect = previewImg.getBoundingClientRect();
-  const x = (ev.clientX - rect.left) * naturalScale;
-  const y = (ev.clientY - rect.top) * naturalScale;
-  if (clickPoints.length >= 4) clickPoints = [];
-  clickPoints.push({x:x,y:y});
-  drawOverlay();
-});
+// 📌 UPLOAD + SALVAR NO FIRESTORE
+function uploadImagem() {
+  const file = document.getElementById("imgInput").files[0];
+  if (!file) return alert("Selecione uma imagem primeiro.");
 
-// draw overlay markers
-function drawOverlay(){
-  const ctx = overlay.getContext('2d');
-  overlay.width = previewImg.clientWidth;
-  overlay.height = previewImg.clientHeight;
-  ctx.clearRect(0,0,overlay.width,overlay.height);
-  const sx = previewImg.clientWidth / previewImg.naturalWidth;
-  ctx.fillStyle = '#0ea5e9';
-  for (let i=0;i<clickPoints.length;i++){
-    const p = clickPoints[i];
-    ctx.beginPath();
-    ctx.arc(p.x * sx, p.y * sx, 8, 0, Math.PI*2);
-    ctx.fill();
-  }
-  if (clickPoints.length === 4){
-    ctx.strokeStyle = '#10b981'; ctx.lineWidth = 3; ctx.beginPath();
-    for (let i=0;i<4;i++){
-      const p = clickPoints[i];
-      if (i===0) ctx.moveTo(p.x * sx, p.y * sx); else ctx.lineTo(p.x * sx, p.y * sx);
-    }
-    ctx.closePath(); ctx.stroke();
-  }
-}
+  fileToBase64(file, (base64) => {
+    document.getElementById("output").value = base64;
 
-// attempt automatic detection of 4 markers and process
-autoDetectBtn.addEventListener('click', async ()=>{
-  if (!previewImg.src) return alert('Carregue ou fotografe primeiro.');
-  if (!cvReady) return alert('OpenCV ainda não pronto.');
-  const detected = await tryAutoDetectAndProcess();
-  if (!detected) alert('Não foi possível detectar automaticamente. Toque 4 cantos manualmente e clique em "Processar".');
-});
-
-// process using current 4 points (semiauto)
-processBtn.addEventListener('click', async ()=>{
-  if (!previewImg.src) return alert('Carregue ou fotografe primeiro.');
-  if (!cvReady) return alert('OpenCV ainda não pronto.');
-  if (!clickPoints || clickPoints.length !== 4) return alert('Toque 4 cantos do gabarito na imagem (em qualquer ordem).');
-  // ask for key (JSON) or use prompt default
-  let rawKey = prompt('Cole a chave como array JSON (ex: [0,1,2,3,...] com 20 valores). Cancelar = todas A.');
-  let key = null;
-  if (rawKey){
-    try { key = JSON.parse(rawKey); if (!Array.isArray(key) || key.length < 20) { alert('Chave inválida/curta. Usando chave padrão (todas A).'); key = null; } }
-    catch(e){ alert('Chave inválida. Usando padrão (todas A).'); key = null; }
-  }
-  if (!key) key = new Array(20).fill(0);
-  const res = await processSingleGabarito(clickPoints, key);
-  showResult(res);
-});
-
-// tryAutoDetectAndProcess: tries to find 4 dark square markers in corners or region
-async function tryAutoDetectAndProcess(){
-  // read image into cv.Mat
-  let src = cv.imread(previewImg);
-  let gray = new cv.Mat(); cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-  // blur + adaptive threshold inverso to get dark squares as blobs
-  let blur = new cv.Mat(); cv.GaussianBlur(gray, blur, new cv.Size(5,5), 0);
-  let th = new cv.Mat(); cv.adaptiveThreshold(blur, th, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY_INV, 31, 9);
-  // find contours
-  let contours = new cv.MatVector(); let hier = new cv.Mat();
-  cv.findContours(th, contours, hier, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-  // candidate squares (large-ish, approx 4 corners)
-  let cand = [];
-  for (let i=0;i<contours.size();i++){
-    let c = contours.get(i);
-    let area = cv.contourArea(c);
-    if (area < 400 || area > (src.rows*src.cols*0.2)) { c.delete(); continue; }
-    let peri = cv.arcLength(c, true);
-    let approx = new cv.Mat();
-    cv.approxPolyDP(c, approx, 0.02 * peri, true);
-    if (approx.rows === 4) {
-      let rect = cv.boundingRect(approx);
-      // require near-square
-      let ar = rect.width / rect.height;
-      if (ar > 0.5 && ar < 2.0) {
-        cand.push({center:{x:rect.x + rect.width/2, y:rect.y + rect.height/2}, rect});
-      }
-    }
-    c.delete();
-  }
-  // if found 4 candidates near corners -> order them and process
-  if (cand.length >= 4){
-    // pick 4 most extreme (by area/position). Use centers to pick tl,tr,br,bl via centroid
-    let pts = cand.slice(0,4).map(c=>({x:c.center.x, y:c.center.y}));
-    // if more than 4, choose those that are farthest apart: pick 4 largest-area ones not implemented - but pick first 4
-    // order by centroid
-    let cx = pts.reduce((s,p)=>s+p.x,0)/pts.length; let cy = pts.reduce((s,p)=>s+p.y,0)/pts.length;
-    let tl, tr, br, bl;
-    pts.forEach(p=>{
-      if (p.x < cx && p.y < cy) tl = p;
-      else if (p.x > cx && p.y < cy) tr = p;
-      else if (p.x > cx && p.y > cy) br = p;
-      else if (p.x < cx && p.y > cy) bl = p;
+    db.collection("imagens").add({
+      titulo: file.name,
+      hash: base64
     });
-    if (!tl || !tr || !br || !bl){
-      // fallback: take extremes
-      pts.sort((a,b)=>a.x - b.x || a.y - b.y);
-      tl = pts[0]; tr = pts[1]; br = pts[2]; bl = pts[3];
-    }
-    // build clickPoints in natural coords and call processing
-    clickPoints = [tl,tr,br,bl];
-    // ask for key
-    let rawKey = prompt('Cole a chave como array JSON (ex: [0,1,2,3,...] com 20 valores). Cancelar = todas A.');
-    let key = null;
-    if (rawKey){
-      try { key = JSON.parse(rawKey); if (!Array.isArray(key) || key.length < 20) key = null; } catch(e){ key = null; }
-    }
-    if (!key) key = new Array(20).fill(0);
-    // clean mats
-    gray.delete(); blur.delete(); th.delete(); contours.delete(); hier.delete(); src.delete();
-    const res = await processSingleGabarito(clickPoints, key);
-    showResult(res);
-    return true;
-  } else {
-    gray.delete(); blur.delete(); th.delete(); contours.delete(); hier.delete(); src.delete();
-    return false;
-  }
+
+    alert("Imagem salva no Firebase!");
+  });
 }
 
-// processSingleGabarito: receives 4 points (natural coords) and key array, returns results
-async function processSingleGabarito(pts, key){
-  // order points to tl,tr,br,bl
-  let cx = pts.reduce((s,p)=>s+p.x,0)/4; let cy = pts.reduce((s,p)=>s+p.y,0)/4;
-  let tl, tr, br, bl;
-  pts.forEach(p=>{
-    if (p.x < cx && p.y < cy) tl = p;
-    else if (p.x > cx && p.y < cy) tr = p;
-    else if (p.x > cx && p.y > cy) br = p;
-    else if (p.x < cx && p.y > cy) bl = p;
-  });
-  if (!tl || !tr || !br || !bl){ [tl,tr,br,bl] = pts; } // fallback
-  let src = cv.imread(previewImg);
-  // compute destination size: choose width ~1200px for good detail on mobile, height proportional to measured height
-  let wTop = Math.hypot(tr.x - tl.x, tr.y - tl.y); let wBot = Math.hypot(br.x - bl.x, br.y - bl.y);
-  let avgW = Math.round((wTop + wBot)/2) || 1200;
-  let dstW = Math.max(1000, avgW);
-  let dstH = Math.round(dstW * 0.12); // approximate ratio to get thin horizontal gabarito (~4cm)
-  const srcTri = cv.matFromArray(4,1,cv.CV_32FC2,[tl.x,tl.y, tr.x,tr.y, br.x,br.y, bl.x,bl.y]);
-  const dstTri = cv.matFromArray(4,1,cv.CV_32FC2,[0,0, dstW-1,0, dstW-1,dstH-1, 0,dstH-1]);
-  const M = cv.getPerspectiveTransform(srcTri, dstTri);
-  const warped = new cv.Mat();
-  cv.warpPerspective(src, warped, M, new cv.Size(dstW, dstH), cv.INTER_LINEAR, cv.BORDER_CONSTANT, new cv.Scalar());
-  // preprocessing tuned for small bubbles (~3mm)
-  let gray = new cv.Mat(); cv.cvtColor(warped, gray, cv.COLOR_RGBA2GRAY);
-  let blur = new cv.Mat(); cv.GaussianBlur(gray, blur, new cv.Size(3,3), 0);
-  let th = new cv.Mat(); cv.adaptiveThreshold(blur, th, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 21, 7);
-  // morphological open to remove noise
-  let kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(3,3));
-  cv.morphologyEx(th, th, cv.MORPH_OPEN, kernel);
-  // find contours
-  let contours = new cv.MatVector(), hier = new cv.Mat();
-  cv.findContours(th, contours, hier, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-  // filter candidate bubbles by area and circularity
-  let candidates = [];
-  for (let i=0;i<contours.size();i++){
-    let c = contours.get(i);
-    let area = cv.contourArea(c);
-    if (area < 15 || area > 4000) { c.delete(); continue; }
-    let perimeter = cv.arcLength(c, true);
-    if (perimeter === 0) { c.delete(); continue; }
-    let circularity = 4*Math.PI*area/(perimeter*perimeter);
-    if (circularity > 0.30){
-      let r = cv.boundingRect(c);
-      candidates.push({c:c, area:area, rect:r, cx:r.x + r.width/2, cy:r.y + r.height/2});
-    } else { c.delete(); }
-  }
-  // if too few candidates, relax circularity a bit (robust for 3mm)
-  if (candidates.length < 60){
-    for (let i=0;i<contours.size();i++){
-      let c = contours.get(i);
-      let area = cv.contourArea(c);
-      if (area < 15 || area > 6000) continue;
-      let perimeter = cv.arcLength(c, true); if (perimeter===0) continue;
-      let circularity = 4*Math.PI*area/(perimeter*perimeter);
-      if (circularity > 0.22 && !candidates.find(x=>x.rect.x===c.boundingRect?.x)) {
-        let r = cv.boundingRect(c);
-        candidates.push({c:c, area:area, rect:r, cx:r.x + r.width/2, cy:r.y + r.height/2});
-      }
-    }
-  }
-  // sort candidates top->bottom then left->right
-  candidates.sort((a,b)=>a.cy - b.cy || a.cx - b.cx);
-  // group into 4 rows by clustering on y
-  let rows = [];
-  let yTol = Math.max(6, Math.round(dstH/60));
-  candidates.forEach(pt=>{
-    let placed=false;
-    for (let r of rows){
-      if (Math.abs(pt.cy - r.avgY) < yTol){ r.items.push(pt); r.avgY = (r.avgY*(r.items.length-1) + pt.cy)/r.items.length; placed=true; break; }
-    }
-    if (!placed) rows.push({avgY:pt.cy, items:[pt]});
-  });
-  // merge until 4 rows
-  while (rows.length > 4){
-    rows.sort((a,b)=>a.avgY - b.avgY);
-    let minGap = Infinity, idx=0;
-    for (let i=0;i<rows.length-1;i++){
-      let gap = Math.abs(rows[i+1].avgY - rows[i].avgY);
-      if (gap < minGap){ minGap = gap; idx = i; }
-    }
-    let merged = {avgY:(rows[idx].avgY*rows[idx].items.length + rows[idx+1].avgY*rows[idx+1].items.length)/(rows[idx].items.length+rows[idx+1].items.length), items: rows[idx].items.concat(rows[idx+1].items)};
-    rows.splice(idx,2,merged);
-  }
-  // ensure exactly 4 rows (pad if needed)
-  rows.sort((a,b)=>a.avgY - b.avgY);
-  while (rows.length < 4) rows.push({avgY:0, items:[]});
-  // For each row, sort by x and pick/align 20 columns
-  let matrix = [];
-  for (let r=0;r<4;r++){
-    let items = rows[r].items || [];
-    items.sort((a,b)=>a.cx - b.cx);
-    if (items.length > 20){
-      let step = items.length / 20; let sel=[]; for (let k=0;k<20;k++) sel.push(items[Math.floor(k*step)]); items = sel;
-    } else if (items.length < 20){
-      while (items.length < 20) items.push(null);
-    }
-    // compute densities for each item
-    let densities = [];
-    for (let cidx=0;cidx<20;cidx++){
-      const it = items[cidx];
-      if (!it){ densities.push(0); continue; }
-      let rx = Math.max(0, it.rect.x - 2), ry = Math.max(0, it.rect.y - 2);
-      let rw = Math.min(th.cols - rx, it.rect.width + 4), rh = Math.min(th.rows - ry, it.rect.height + 4);
-      if (rw <= 0 || rh <= 0){ densities.push(0); continue; }
-      let roi = th.roi(new cv.Rect(rx, ry, rw, rh));
-      let nonZero = cv.countNonZero(roi); roi.delete();
-      densities.push(nonZero / (rw * rh));
-    }
-    matrix.push(densities);
-  }
-  // for each question (column), pick max row (A..D)
-  let detected = [];
-  for (let q=0;q<20;q++){
-    let col = [matrix[0][q] || 0, matrix[1][q] || 0, matrix[2][q] || 0, matrix[3][q] || 0];
-    let maxD = Math.max(...col); let maxIdx = col.indexOf(maxD);
-    let fillThreshold = 0.16; // tuned for 3mm on mobile images (may need small adjustments)
-    if (maxD > fillThreshold){
-      // check ambiguity (close second)
-      let sorted = col.slice().sort((a,b)=>b-a);
-      let ambiguous = (sorted[0] - sorted[1]) < 0.10;
-      detected.push({selected: maxIdx, densities: col, ambiguous: ambiguous});
-    } else detected.push({selected: -1, densities: col, ambiguous:false});
-  }
-  // score
-  let correct = 0; let details = [];
-  for (let q=0;q<20;q++){
-    let d = detected[q]; let sel = d.selected; let correctAns = (q < key.length) ? key[q] : null;
-    let densStr = d.densities.map(x => x.toFixed(2)).join(',');
-    if (sel === -1) details.push(`Q${q+1}: — não marcada | dens: [${densStr}]`);
-    else {
-      let letter = String.fromCharCode(65 + sel);
-      if (correctAns !== null && sel === correctAns){ correct++; details.push(`Q${q+1}: ${letter} ✅ | dens: [${densStr}]`); }
-      else details.push(`Q${q+1}: ${letter} ❌ (correta=${String.fromCharCode(65 + correctAns)}) | dens: [${densStr}]`);
-    }
-  }
-  let scorePct = Math.round((correct/20)*100);
-  // show warped image in previewCanvas
-  cv.imshow(previewCanvas, warped);
-  // cleanup
-  src.delete(); srcTri.delete(); dstTri.delete(); M.delete();
-  gray.delete(); blur.delete(); th.delete(); kernel.delete();
-  contours.delete(); hier.delete();
-  candidates.forEach(c=>{ try{ if (c.c) c.c.delete(); } catch(e){} });
-  // return object (keep warped deleted or not? already drawn)
-  warped.delete();
-  return {correct: correct, total:20, score: scorePct, detail: details.join('\n')};
-}
+function uploadPDF() {
+  const file = document.getElementById("pdfInput").files[0];
+  if (!file) return alert("Selecione um PDF primeiro.");
 
-// showResult
-function showResult(res){
-  resultArea.style.display = 'block';
-  scoreLabel.innerText = `Resultado: ${res.correct}/${res.total} — ${res.score}%`;
-  summarySmall.innerText = `Data: ${new Date().toLocaleString()}`;
-  detailPre.innerText = res.detail;
-  // prepare CSV
-  downloadCSV.onclick = ()=>{
-    let lines = ['Questão,Resultado,Observação'];
-    res.detail.split('\n').forEach(l=>{
-      // simple parse
-      lines.push(`"${l.replace(/"/g,'""')}"`);
+  fileToBase64(file, (base64) => {
+    document.getElementById("output").value = base64;
+
+    db.collection("pdfs").add({
+      titulo: file.name,
+      hash: base64
     });
-    const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = `resultado_${Date.now()}.csv`; a.click();
-    URL.revokeObjectURL(url);
-  };
-}
 
+    alert("PDF salvo no Firebase!");
+  });
+}
 </script>
+
 </body>
 </html>
