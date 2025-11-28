@@ -1,72 +1,77 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Imagens</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Visualizar Imagens</title>
   <style>
-    body { font-family: Arial; padding:20px; }
-    .container { display:flex; gap:20px; }
-    select { width:250px; height:300px; }
-    img { max-width:500px; max-height:500px; border:1px solid #aaa; padding:10px; }
+    body { font-family: Arial, sans-serif; padding:0; margin:0 }
+    header { background:#0b63a4; color:white; padding:12px 20px }
+    header a { color:white; margin-right:16px; text-decoration:none; font-weight:600 }
+    main { padding:20px }
+    .container { display:flex; gap:20px }
+    select { width:300px; height:400px }
+    img { max-width:700px; max-height:700px; border:1px solid #aaa; padding:10px }
   </style>
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-  <script>
-    const firebaseConfig = {
-      apiKey: "SUA_APIKEY_AQUI",
-      authDomain: "SEU_AUTHDOMAIN.firebaseapp.com",
-      projectId: "SEU_PROJECTID",
-      storageBucket: "SEU_BUCKET.appspot.com",
-      messagingSenderId: "SEU_SENDER_ID",
-      appId: "SEU_APP_ID"
-    };
-
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-  </script>
+  <script src="js/firebase-config.js"></script>
 </head>
-
 <body>
-<h2>Visualizar Imagens</h2>
+  <header>
+    <a href="index.html">Upload</a>
+    <a href="imagens.html">Imagens</a>
+    <a href="pdfs.html">PDFs</a>
+  </header>
 
-<div class="container">
-  <div>
-    <select id="lista" size="15" onclick="mostrarImagem()"></select>
-  </div>
+  <main>
+    <h2>Visualizador de Imagens</h2>
 
-  <div>
-    <img id="preview" src="" />
-  </div>
-</div>
+    <div class="container">
+      <div>
+        <select id="lista" size="20" onchange="mostrarImagem()"></select>
+      </div>
+
+      <div>
+        <img id="preview" src="" alt="Imagem selecionada" />
+      </div>
+    </div>
+  </main>
 
 <script>
-let imagens = [];
+let imagens = []; // array local com os itens
 
-window.onload = function() {
-  db.collection("imagens").get().then(snapshot => {
-    snapshot.forEach(doc => {
-      imagens.push({ id: doc.id, ...doc.data() });
+function carregarImagens() {
+  const listaEl = document.getElementById('lista');
+  listaEl.innerHTML = '';
+  database.ref('imagens').orderByChild('timestamp').once('value').then(snapshot => {
+    imagens = [];
+    snapshot.forEach(child => {
+      const obj = { id: child.key, ...child.val() };
+      imagens.push(obj);
     });
 
-    const lista = document.getElementById("lista");
-    imagens.forEach((img, index) => {
-      let opt = document.createElement("option");
-      opt.value = index;
-      opt.textContent = img.titulo;
-      lista.appendChild(opt);
+    imagens.reverse(); // mostrar mais recentes primeiro
+    imagens.forEach((img, idx) => {
+      const opt = document.createElement('option');
+      opt.value = idx;
+      opt.textContent = img.titulo || ('Imagem ' + (idx+1));
+      listaEl.appendChild(opt);
     });
-  });
+  }).catch(err => { console.error(err); alert('Erro ao carregar imagens.'); });
 }
 
 function mostrarImagem() {
-  let i = document.getElementById("lista").value;
-  document.getElementById("preview").src = imagens[i].hash;
+  const idx = document.getElementById('lista').value;
+  if (!imagens[idx]) return;
+  document.getElementById('preview').src = imagens[idx].hash;
 }
-</script>
 
+window.onload = carregarImagens;
+</script>
 </body>
 </html>
