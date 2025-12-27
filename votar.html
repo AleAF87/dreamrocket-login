@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Votação</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #aaaaaa 0%, #5c5c5c 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            transition: background-color 0.5s;
+        }
+        
+        body.darkened {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        }
+
+        .vote-btn.disabled {
+            background: #999 !important; /* Cinza claro */
+            color: #666 !important;
+            transform: none !important;
+            box-shadow: none !important;
+            cursor: not-allowed;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 800px;
+            text-align: center;
+        }
+        
+        h1 {
+            color: white;
+            margin-bottom: 40px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .voting-options {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .vote-btn {
+            background: white;
+            border: none;
+            border-radius: 15px;
+            padding: 30px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.5s ease forwards;
+        }
+        
+        .vote-btn:nth-child(1) {
+            animation-delay: 0.1s;
+        }
+        
+        .vote-btn:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .vote-btn:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+        
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .vote-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+        }
+        
+        .vote-btn.voted {
+            background: #4CAF50 !important; /* Verde para destacar */
+            color: white !important;
+            box-shadow: 
+                0 0 30px rgba(76, 175, 80, 0.8),
+                0 0 60px rgba(76, 175, 80, 0.4) !important;
+            transform: scale(1.05) !important;
+            z-index: 100;
+            position: relative;
+            animation: pulse 0.5s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+            100% { transform: scale(1.05); }
+        }
+        
+        .thank-you {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95); /* Branco semi-transparente */
+            padding: 20px 40px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            z-index: 1000;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            text-align: center;
+            min-width: 300px;
+        }
+        
+        .thank-you.show {
+            opacity: 1;
+        }
+
+        .voting-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(150, 150, 150, 0.7); /* Cinza claro semi-transparente */
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+        
+        .voting-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .voting-overlay.active ~ .container .vote-btn:not(.voted) {
+            opacity: 0.5 !important;
+            filter: grayscale(80%) !important;
+            background: linear-gradient(135deg, #999, #777) !important;
+            color: #666 !important;
+        }
+
+        /* Mantém o botão votado colorido e destacado */
+        .voting-overlay.active ~ .container .vote-btn.voted {
+            opacity: 1 !important;
+            filter: none !important;
+            box-shadow: 
+                0 0 40px rgba(76, 175, 80, 0.9),
+                0 0 80px rgba(76, 175, 80, 0.5),
+                0 10px 30px rgba(0,0,0,0.3) !important;
+            transform: scale(1.1) !important;
+            z-index: 1001;
+            position: relative;
+            animation: pulseHighlight 0.8s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulseHighlight {
+            from {
+                box-shadow: 
+                    0 0 40px rgba(76, 175, 80, 0.9),
+                    0 0 80px rgba(76, 175, 80, 0.5),
+                    0 10px 30px rgba(0,0,0,0.3);
+            }
+            to {
+                box-shadow: 
+                    0 0 50px rgba(76, 175, 80, 1),
+                    0 0 100px rgba(76, 175, 80, 0.7),
+                    0 10px 40px rgba(0,0,0,0.4);
+            }
+        }
+        .btn-manha {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+        }
+        
+        .btn-noite {
+            background: linear-gradient(135deg, #4A00E0, #8E2DE2);
+            color: white !important;
+        }
+        
+        .btn-tanto-faz {
+            background: linear-gradient(135deg, #b00060, #fc028b);
+            color: white !important;
+        }
+        
+        .back-btn {
+            margin-top: 30px;
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        
+        .back-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="voting-overlay" id="votingOverlay"></div>
+    <div class="container">
+        <h1>Escolha seu horário preferido:</h1>
+        <div class="voting-options">
+            <button class="vote-btn btn-manha" data-vote="manha">Manhã</button>
+            <button class="vote-btn btn-noite" data-vote="noite">Noite</button>
+            <button class="vote-btn btn-tanto-faz" data-vote="tanto_faz">Tanto Faz</button>
+        </div>
+        <!-- <button class="back-btn" onclick="window.location.href='index.html'">Voltar</button> -->
+    </div>
+    
+    <div class="thank-you" id="thankYou">Obrigado pelo voto!</div>
+
+    <div style="margin-top: 20px; text-align: center;">
+        <a href="resultvotos.html" style="color: white; text-decoration: none; font-size: 14px;">
+            📊 Ver resultados da votação
+        </a>
+    </div>
+
+    <!-- Firebase SDK v8 (compatível com seu config) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <script>
+        // Importa a configuração do firebase-config.js
+        const firebaseConfig = {
+            apiKey: "AIzaSyA5ySYmw4m6tLdQtZ2Vp3baRWDdoXwkceQ",
+            authDomain: "dreamrocket-login.firebaseapp.com",
+            databaseURL: "https://dreamrocket-login-default-rtdb.firebaseio.com",
+            projectId: "dreamrocket-login",
+            storageBucket: "dreamrocket-login.firebasestorage.app",
+            messagingSenderId: "938173998872",
+            appId: "1:938173998872:web:b8e22b6ea657cb9285206d"
+        };
+        
+        // Inicializa Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const database = firebase.database();
+        
+        // Função para formatar data como aaaammddHHMMSS
+        function getFormattedDate() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            
+            return `${year}${month}${day}${hours}${minutes}${seconds}`;
+        }
+        
+        // Função para registrar voto
+        function registerVote(voteType) {
+            const voteTimestamp = getFormattedDate();
+            const voteData = {
+                tipo: voteType,
+                data: new Date().toISOString(),
+                timestamp: voteTimestamp
+            };
+            
+            // Salva no Firebase no nó "votos"
+            database.ref('votos/' + voteTimestamp).set(voteData)
+                .then(() => {
+                    console.log('Voto registrado com sucesso:', voteData);
+                })
+                .catch((error) => {
+                    console.error('Erro ao registrar voto:', error);
+                });
+        }
+        
+        // Adiciona event listeners aos botões (depois que o DOM carregar)
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.vote-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const voteType = this.getAttribute('data-vote');
+                    const body = document.body;
+                    const thankYou = document.getElementById('thankYou');
+                    const overlay = document.getElementById('votingOverlay');
+                    
+                    // 1. Ativa o overlay semi-transparente
+                    overlay.classList.add('active');
+                    
+                    // 2. Desabilita todos os botões (menos o clicado)
+                    document.querySelectorAll('.vote-btn').forEach(btn => {
+                        btn.style.pointerEvents = 'none'; // Impede novos cliques
+                    });
+                    this.style.pointerEvents = 'auto'; // Mantém o botão votado ativo visualmente
+                    
+                    // 3. Aplica efeitos visuais
+                    document.querySelectorAll('.vote-btn').forEach(btn => {
+                        btn.classList.remove('voted');
+                    });
+                    this.classList.add('voted');
+                    
+                    // 4. Mostra mensagem de agradecimento no topo
+                    thankYou.classList.add('show');
+                    
+                    // Registra o voto
+                    registerVote(voteType);
+                    
+                    // 5. Reseta após 5 segundos
+                    setTimeout(() => {
+                        // Remove overlay
+                        overlay.classList.remove('active');
+                        
+                        // Remove estados dos botões
+                        document.querySelectorAll('.vote-btn').forEach(btn => {
+                            btn.classList.remove('voted');
+                            btn.style.pointerEvents = 'auto'; // Reativa os cliques
+                            btn.style.opacity = '1';
+                            btn.style.filter = 'none';
+                            
+                            // Restaura cores originais
+                            if (btn.classList.contains('btn-manha')) {
+                                btn.style.background = 'linear-gradient(135deg, #FFD700, #FFA500)';
+                                btn.style.color = '#333';
+                            } else if (btn.classList.contains('btn-noite')) {
+                                btn.style.background = 'linear-gradient(135deg, #4A00E0, #8E2DE2)';
+                                btn.style.color = 'white';
+                            } else if (btn.classList.contains('btn-tanto-faz')) {
+                                btn.style.background = 'linear-gradient(135deg, #b00060, #fc028b)';
+                                btn.style.color = 'white';
+                            }
+                            
+                            // Remove sombras
+                            btn.style.boxShadow = '0 10px 20px rgba(0,0,0,0.2)';
+                            btn.style.transform = 'none';
+                        });
+                        
+                        // Esconde mensagem
+                        thankYou.classList.remove('show');
+                        
+                    }, 3000);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

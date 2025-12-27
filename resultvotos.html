@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultados da Votação</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 18px;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .stats-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .stats-card h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .stat-number {
+            font-size: 36px;
+            font-weight: bold;
+            color: #4A00E0;
+            margin-bottom: 10px;
+        }
+        
+        .stat-percentage {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .chart-container {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            height: 400px; /* Altura fixa */
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-container h3 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+            flex-shrink: 0; /* Mantém o título no lugar */
+        }
+
+        /* Container do canvas do gráfico */
+        .chart-wrapper {
+            flex-grow: 1; /* Ocupa o espaço restante */
+            position: relative;
+            height: calc(100% - 40px); /* Altura menos o título */
+        }
+        
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 40px;
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #4A00E0, #8E2DE2);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .vote-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .vote-item:last-child {
+            border-bottom: none;
+        }
+        
+        .vote-type {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .vote-time {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 40px;
+        }
+        
+        .latest-votes {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .latest-votes h3 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .votes-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Dashboard de Votos</h1>
+            <p class="subtitle">Resultados em tempo real da votação</p>
+        </header>
+        
+        <div class="dashboard">
+            <div class="stats-card">
+                <h3>Total de Votos</h3>
+                <div class="stat-number" id="totalVotes">0</div>
+                <div class="stat-percentage" id="updateTime">Atualizando...</div>
+            </div>
+            
+            <div class="stats-card">
+                <h3>Votos Manhã</h3>
+                <div class="stat-number" id="manhaVotes">0</div>
+                <div class="stat-percentage" id="manhaPercentage">0%</div>
+            </div>
+            
+            <div class="stats-card">
+                <h3>Votos Noite</h3>
+                <div class="stat-number" id="noiteVotes">0</div>
+                <div class="stat-percentage" id="noitePercentage">0%</div>
+            </div>
+            
+            <div class="stats-card">
+                <h3>Votos Tanto Faz</h3>
+                <div class="stat-number" id="tantoFazVotes">0</div>
+                <div class="stat-percentage" id="tantoFazPercentage">0%</div>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <h3>Distribuição dos Votos</h3>
+            <div class="chart-wrapper">
+                <canvas id="votesChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="latest-votes">
+            <h3>Últimos Votos</h3>
+            <div class="votes-list" id="latestVotes">
+                <div class="empty-state">Carregando votos...</div>
+            </div>
+        </div>
+        
+        <div class="buttons">
+            <a href="votar.html" class="btn btn-primary">Nova Votação</a>
+            <!-- <a href="index.html" class="btn btn-secondary">Página Inicial</a> -->
+        </div>
+    </div>
+
+    <!-- Firebase SDK v8 (compatível com seu config) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <script>
+        // Importa a configuração do firebase-config.js
+        const firebaseConfig = {
+            apiKey: "AIzaSyA5ySYmw4m6tLdQtZ2Vp3baRWDdoXwkceQ",
+            authDomain: "dreamrocket-login.firebaseapp.com",
+            databaseURL: "https://dreamrocket-login-default-rtdb.firebaseio.com",
+            projectId: "dreamrocket-login",
+            storageBucket: "dreamrocket-login.firebasestorage.app",
+            messagingSenderId: "938173998872",
+            appId: "1:938173998872:web:b8e22b6ea657cb9285206d"
+        };
+        
+        // Inicializa Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const database = firebase.database();
+        
+        // Resto do código permanece igual, mas troque onValue por on...
+        
+        // Função para atualizar estatísticas
+        function updateStatistics(votes) {
+            const votesArray = Object.values(votes);
+            const total = votesArray.length;
+            
+            // Conta votos por tipo
+            const manha = votesArray.filter(v => v.tipo === 'manha').length;
+            const noite = votesArray.filter(v => v.tipo === 'noite').length;
+            const tantoFaz = votesArray.filter(v => v.tipo === 'tanto_faz').length;
+            
+            // Atualiza números
+            document.getElementById('totalVotes').textContent = total;
+            document.getElementById('manhaVotes').textContent = manha;
+            document.getElementById('noiteVotes').textContent = noite;
+            document.getElementById('tantoFazVotes').textContent = tantoFaz;
+            
+            // Atualiza porcentagens
+            document.getElementById('manhaPercentage').textContent = 
+                total > 0 ? `${((manha / total) * 100).toFixed(1)}%` : '0%';
+            document.getElementById('noitePercentage').textContent = 
+                total > 0 ? `${((noite / total) * 100).toFixed(1)}%` : '0%';
+            document.getElementById('tantoFazPercentage').textContent = 
+                total > 0 ? `${((tantoFaz / total) * 100).toFixed(1)}%` : '0%';
+            
+            // Atualiza horário da última atualização
+            document.getElementById('updateTime').textContent = 
+                `Última atualização: ${new Date().toLocaleTimeString()}`;
+            
+            // Atualiza gráfico
+            if (window.votesChart) {
+                window.votesChart.data.datasets[0].data = [manha, noite, tantoFaz];
+                window.votesChart.update();
+            }
+            
+            // Atualiza lista de últimos votos
+            updateLatestVotes(votes);
+        }
+        
+        // Função para atualizar lista de últimos votos
+        function updateLatestVotes(votes) {
+            const latestVotesDiv = document.getElementById('latestVotes');
+            const votesArray = Object.entries(votes)
+                .map(([key, value]) => ({ key, ...value }))
+                .sort((a, b) => b.key.localeCompare(a.key))
+                .slice(0, 10);
+            
+            if (votesArray.length === 0) {
+                latestVotesDiv.innerHTML = '<div class="empty-state">Nenhum voto registrado ainda</div>';
+                return;
+            }
+            
+            latestVotesDiv.innerHTML = votesArray.map(vote => `
+                <div class="vote-item">
+                    <div>
+                        <span class="vote-type">${getVoteLabel(vote.tipo)}</span>
+                        <span class="vote-time">${formatDate(vote.data)}</span>
+                    </div>
+                    <div>
+                        <small>${vote.key}</small>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Função para obter label do voto
+        function getVoteLabel(type) {
+            switch(type) {
+                case 'manha': return '☀️ Manhã';
+                case 'noite': return '🌙 Noite';
+                case 'tanto_faz': return '🤷 Tanto Faz';
+                default: return type;
+            }
+        }
+        
+        // Função para formatar data
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString('pt-BR');
+        }
+        
+        // Inicializa o gráfico quando o DOM carregar
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.getElementById('votesChart');
+            const ctx = canvas.getContext('2d');
+            
+            // Ajusta o tamanho do canvas para o container
+            const chartWrapper = document.querySelector('.chart-wrapper');
+            
+            function resizeCanvas() {
+                canvas.width = chartWrapper.clientWidth;
+                canvas.height = chartWrapper.clientHeight;
+            }
+            
+            // Resize inicial
+            resizeCanvas();
+            
+            window.votesChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Manhã', 'Noite', 'Tanto Faz'],
+                    datasets: [{
+                        data: [0, 0, 0],
+                        backgroundColor: [
+                            '#FFD700',
+                            '#4A00E0',
+                            '#b00060'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, // IMPORTANTE: permite controle manual
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                font: {
+                                    size: 14
+                                },
+                                boxWidth: 20,
+                                boxHeight: 20
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                    return `${label}: ${value} votos (${percentage}%)`;
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        animateScale: true,
+                        animateRotate: true
+                    }
+                }
+            });
+            
+            // Reajusta o canvas quando a janela é redimensionada
+            window.addEventListener('resize', function() {
+                resizeCanvas();
+                if (window.votesChart) {
+                    window.votesChart.resize();
+                }
+            });
+            
+            // Monitora alterações no Firebase
+            const votesRef = database.ref('votos');
+            votesRef.on('value', (snapshot) => {
+                const votes = snapshot.val();
+                if (votes) {
+                    updateStatistics(votes);
+                } else {
+                    updateStatistics({});
+                }
+            });
+        });
+    </script>
+</body>
+</html>
