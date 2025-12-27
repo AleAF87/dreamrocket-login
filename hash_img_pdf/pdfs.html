@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Visualizar PDFs</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding:0; margin:0 }
+    header { background:#0b63a4; color:white; padding:12px 20px }
+    header a { color:white; margin-right:16px; text-decoration:none; font-weight:600 }
+    main { padding:20px }
+    .container { display:flex; gap:20px }
+    select { width:300px; height:400px }
+    iframe { width:700px; height:700px; border:1px solid #aaa }
+    button { padding:8px 12px; margin-top:10px }
+  </style>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+  <script src="js/firebase-config.js"></script>
+</head>
+<body>
+  <header>
+    <a href="index.html">Upload</a>
+    <a href="imagens.html">Imagens</a>
+    <a href="pdfs.html">PDFs</a>
+  </header>
+
+  <main>
+    <h2>Visualizador de PDFs</h2>
+
+    <div class="container">
+      <div>
+        <select id="listaPDF" size="20" onchange="mostrarPDF()"></select>
+        <div>
+          <button onclick="baixarPDF()">Baixar PDF</button>
+        </div>
+      </div>
+
+      <div>
+        <iframe id="visorPDF" src=""></iframe>
+      </div>
+    </div>
+  </main>
+
+<script>
+let pdfs = [];
+
+function carregarPDFs() {
+  const listaEl = document.getElementById('listaPDF');
+  listaEl.innerHTML = '';
+  database.ref('pdfs').orderByChild('timestamp').once('value').then(snapshot => {
+    pdfs = [];
+    snapshot.forEach(child => {
+      const obj = { id: child.key, ...child.val() };
+      pdfs.push(obj);
+    });
+
+    pdfs.reverse();
+    pdfs.forEach((p, idx) => {
+      const opt = document.createElement('option');
+      opt.value = idx;
+      opt.textContent = p.titulo || ('PDF ' + (idx+1));
+      listaEl.appendChild(opt);
+    });
+  }).catch(err => { console.error(err); alert('Erro ao carregar PDFs.'); });
+}
+
+function mostrarPDF() {
+  const idx = document.getElementById('listaPDF').value;
+  if (!pdfs[idx]) return;
+  document.getElementById('visorPDF').src = pdfs[idx].hash;
+}
+
+function baixarPDF() {
+  const idx = document.getElementById('listaPDF').value;
+  if (!pdfs[idx]) return alert('Selecione um PDF primeiro.');
+
+  const link = document.createElement('a');
+  link.href = pdfs[idx].hash;
+  link.download = pdfs[idx].titulo || ('download.pdf');
+  link.click();
+}
+
+window.onload = carregarPDFs;
+</script>
+</body>
+</html>

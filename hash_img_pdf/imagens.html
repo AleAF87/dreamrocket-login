@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Visualizar Imagens</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding:0; margin:0 }
+    header { background:#0b63a4; color:white; padding:12px 20px }
+    header a { color:white; margin-right:16px; text-decoration:none; font-weight:600 }
+    main { padding:20px }
+    .container { display:flex; gap:20px }
+    select { width:300px; height:400px }
+    img { max-width:700px; max-height:700px; border:1px solid #aaa; padding:10px }
+  </style>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+  <script src="js/firebase-config.js"></script>
+</head>
+<body>
+  <header>
+    <a href="index.html">Upload</a>
+    <a href="imagens.html">Imagens</a>
+    <a href="pdfs.html">PDFs</a>
+  </header>
+
+  <main>
+    <h2>Visualizador de Imagens</h2>
+
+    <div class="container">
+      <div>
+        <select id="lista" size="20" onchange="mostrarImagem()"></select>
+      </div>
+
+      <div>
+        <img id="preview" src="" alt="Imagem selecionada" />
+      </div>
+    </div>
+  </main>
+
+<script>
+let imagens = []; // array local com os itens
+
+function carregarImagens() {
+  const listaEl = document.getElementById('lista');
+  listaEl.innerHTML = '';
+  database.ref('imagens').orderByChild('timestamp').once('value').then(snapshot => {
+    imagens = [];
+    snapshot.forEach(child => {
+      const obj = { id: child.key, ...child.val() };
+      imagens.push(obj);
+    });
+
+    imagens.reverse(); // mostrar mais recentes primeiro
+    imagens.forEach((img, idx) => {
+      const opt = document.createElement('option');
+      opt.value = idx;
+      opt.textContent = img.titulo || ('Imagem ' + (idx+1));
+      listaEl.appendChild(opt);
+    });
+  }).catch(err => { console.error(err); alert('Erro ao carregar imagens.'); });
+}
+
+function mostrarImagem() {
+  const idx = document.getElementById('lista').value;
+  if (!imagens[idx]) return;
+  document.getElementById('preview').src = imagens[idx].hash;
+}
+
+window.onload = carregarImagens;
+</script>
+</body>
+</html>

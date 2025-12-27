@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Upload de Arquivos - Index</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 0; margin:0; }
+    header { background:#0b63a4; color:white; padding:12px 20px; }
+    header a { color:white; margin-right:16px; text-decoration:none; font-weight:600 }
+    main { padding:20px }
+    .box { border: 1px solid #ccc; padding: 20px; border-radius: 8px; max-width: 600px; }
+    button { padding: 10px 15px; margin-top: 10px; cursor: pointer; }
+    textarea { width: 100%; height: 150px; margin-top: 10px; }
+  </style>
+
+  <!-- Firebase SDKs necessários -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+  <!-- carregar o arquivo com sua configuração -->
+  <script src="js/firebase-config.js"></script>
+</head>
+<body>
+  <header>
+    <a href="index.html">Upload</a>
+    <a href="imagens.html">Imagens</a>
+    <a href="pdfs.html">PDFs</a>
+  </header>
+
+  <main>
+    <h2>Upload de Arquivos (Imagem / PDF)</h2>
+
+    <div class="box">
+      <label>Selecione uma imagem:</label><br />
+      <input type="file" id="imgInput" accept="image/*" /><br /><br />
+
+      <label>Selecione um PDF:</label><br />
+      <input type="file" id="pdfInput" accept="application/pdf" /><br /><br />
+
+      <button id="btnImg">Enviar Imagem</button>
+      <button id="btnPdf">Enviar PDF</button>
+
+      <h3>Hash gerado:</h3>
+      <textarea id="output" readonly></textarea>
+    </div>
+  </main>
+
+<script>
+// Converte arquivo para Base64 (data URL)
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// Funções de upload que salvam no Realtime Database
+async function uploadImagem() {
+  const file = document.getElementById('imgInput').files[0];
+  if (!file) return alert('Selecione uma imagem primeiro.');
+
+  try {
+    const base64 = await fileToBase64(file);
+    document.getElementById('output').value = base64;
+
+    // salva em /imagens
+    const ref = database.ref('imagens').push();
+    await ref.set({ titulo: file.name, hash: base64, timestamp: Date.now() });
+
+    alert('Imagem salva no Firebase Realtime Database!');
+  } catch (err) {
+    console.error(err);
+    alert('Erro ao processar a imagem. Veja console.');
+  }
+}
+
+async function uploadPDF() {
+  const file = document.getElementById('pdfInput').files[0];
+  if (!file) return alert('Selecione um PDF primeiro.');
+
+  try {
+    const base64 = await fileToBase64(file);
+    document.getElementById('output').value = base64;
+
+    // salva em /pdfs
+    const ref = database.ref('pdfs').push();
+    await ref.set({ titulo: file.name, hash: base64, timestamp: Date.now() });
+
+    alert('PDF salvo no Firebase Realtime Database!');
+  } catch (err) {
+    console.error(err);
+    alert('Erro ao processar o PDF. Veja console.');
+  }
+}
+
+// vincular botões
+document.getElementById('btnImg').addEventListener('click', uploadImagem);
+document.getElementById('btnPdf').addEventListener('click', uploadPDF);
+</script>
+</body>
+</html>
