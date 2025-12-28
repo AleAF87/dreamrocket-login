@@ -58,7 +58,7 @@
             border: none;
             border-radius: 15px;
             padding: 30px;
-            font-size: 24px;
+            font-size: 40px;
             font-weight: bold;
             color: #333;
             cursor: pointer;
@@ -198,12 +198,12 @@
         }
         
         .btn-noite {
-            background: linear-gradient(135deg, #0300b3, #02008d);
+            background: linear-gradient(135deg, #0300b3, #010042);
             color: white !important;
         }
         
         .btn-tanto-faz {
-            background: linear-gradient(135deg, #78ff5d, #38dd17);
+            background: linear-gradient(135deg, #78ff5d, #2ebb11);
             /* color: white !important; */
         }
         
@@ -229,9 +229,15 @@
     <div class="container">
         <h1>Escolha seu horário preferido:</h1>
         <div class="voting-options">
-            <button class="vote-btn btn-manha" data-vote="manha">Manhã</button>
-            <button class="vote-btn btn-noite" data-vote="noite">Noite</button>
-            <button class="vote-btn btn-tanto-faz" data-vote="tanto_faz">Tanto Faz</button>
+            <button class="vote-btn btn-manha" data-vote="manha">☀️  MANHÃ</button>
+            <p></p>
+            <p></p>
+            <button class="vote-btn btn-noite" data-vote="noite">🌙  NOITE</button>
+            <p></p>
+            <p></p>
+            <button class="vote-btn btn-tanto-faz" data-vote="tanto_faz">🤷  TANTO FAZ</button>
+            <p></p>
+            <p></p>
         </div>
         <!-- <button class="back-btn" onclick="window.location.href='index.html'">Voltar</button> -->
     </div>
@@ -345,10 +351,10 @@
                                 btn.style.background = 'linear-gradient(135deg, #ffee00, #ff8800)';
                                 btn.style.color = '#333';
                             } else if (btn.classList.contains('btn-noite')) {
-                                btn.style.background = 'linear-gradient(135deg, #0300b3, #02008d)';
+                                btn.style.background = 'linear-gradient(135deg, #0300b3, #010042)';
                                 btn.style.color = 'white';
                             } else if (btn.classList.contains('btn-tanto-faz')) {
-                                btn.style.background = 'linear-gradient(135deg, #78ff5d, #38dd17)';
+                                btn.style.background = 'linear-gradient(135deg, #78ff5d, #2ebb11)';
                                 btn.style.color = '#333';
                             }
                             
