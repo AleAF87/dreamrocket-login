@@ -13,7 +13,7 @@
         
         body {
             font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #aaaaaa 0%, #5c5c5c 100%);
+            background: linear-gradient(135deg, #353535 0%, #202020 100%);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -194,17 +194,17 @@
             }
         }
         .btn-manha {
-            background: linear-gradient(135deg, #FFD700, #FFA500);
+            background: linear-gradient(135deg, #ffee00, #ff8800);
         }
         
         .btn-noite {
-            background: linear-gradient(135deg, #4A00E0, #8E2DE2);
+            background: linear-gradient(135deg, #0300b3, #02008d);
             color: white !important;
         }
         
         .btn-tanto-faz {
-            background: linear-gradient(135deg, #b00060, #fc028b);
-            color: white !important;
+            background: linear-gradient(135deg, #78ff5d, #38dd17);
+            /* color: white !important; */
         }
         
         .back-btn {
@@ -342,14 +342,14 @@
                             
                             // Restaura cores originais
                             if (btn.classList.contains('btn-manha')) {
-                                btn.style.background = 'linear-gradient(135deg, #FFD700, #FFA500)';
+                                btn.style.background = 'linear-gradient(135deg, #ffee00, #ff8800)';
                                 btn.style.color = '#333';
                             } else if (btn.classList.contains('btn-noite')) {
-                                btn.style.background = 'linear-gradient(135deg, #4A00E0, #8E2DE2)';
+                                btn.style.background = 'linear-gradient(135deg, #0300b3, #02008d)';
                                 btn.style.color = 'white';
                             } else if (btn.classList.contains('btn-tanto-faz')) {
-                                btn.style.background = 'linear-gradient(135deg, #b00060, #fc028b)';
-                                btn.style.color = 'white';
+                                btn.style.background = 'linear-gradient(135deg, #78ff5d, #38dd17)';
+                                btn.style.color = '#333';
                             }
                             
                             // Remove sombras
