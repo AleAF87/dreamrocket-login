@@ -101,9 +101,61 @@
             font-size: 0.92rem;
         }
 
+        .mobile-controls {
+            display: none;
+            margin-top: 14px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .touch-pad {
+            padding: 12px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.88);
+            box-shadow: 0 10px 30px rgba(23, 50, 77, 0.08);
+        }
+
+        .touch-pad h2 {
+            margin: 0 0 10px;
+            font-size: 1rem;
+        }
+
+        .touch-row {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .touch-btn {
+            border: 0;
+            border-radius: 16px;
+            padding: 14px 10px;
+            font: inherit;
+            font-weight: 700;
+            color: #17324d;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(216, 238, 255, 0.96));
+            box-shadow: inset 0 -4px 0 rgba(23, 50, 77, 0.12);
+            touch-action: manipulation;
+        }
+
+        .touch-btn:active,
+        .touch-btn.active {
+            transform: translateY(1px);
+            box-shadow: inset 0 -2px 0 rgba(23, 50, 77, 0.12);
+            background: linear-gradient(180deg, rgba(205, 233, 255, 0.98), rgba(172, 216, 255, 0.96));
+        }
+
         @media (max-width: 640px) {
             .game-shell {
                 padding: 14px;
+            }
+
+            .controls {
+                display: none;
+            }
+
+            .mobile-controls {
+                display: grid;
             }
         }
     </style>
@@ -127,6 +179,25 @@
             <div class="panel">Se a bola tocar o chão do seu lado, o ponto é do adversário.</div>
         </div>
 
+        <div class="mobile-controls">
+            <div class="touch-pad">
+                <h2>Rosa</h2>
+                <div class="touch-row">
+                    <button class="touch-btn" data-key="KeyA">Esq</button>
+                    <button class="touch-btn" data-key="KeyW">Pulo</button>
+                    <button class="touch-btn" data-key="KeyD">Dir</button>
+                </div>
+            </div>
+            <div class="touch-pad">
+                <h2>Verde</h2>
+                <div class="touch-row">
+                    <button class="touch-btn" data-key="ArrowLeft">Esq</button>
+                    <button class="touch-btn" data-key="ArrowUp">Pulo</button>
+                    <button class="touch-btn" data-key="ArrowRight">Dir</button>
+                </div>
+            </div>
+        </div>
+
         <div class="hint">A rede no meio rebate a bola como uma parede, e a bola segue com gravidade em arco.</div>
     </main>
 
@@ -137,6 +208,7 @@
         const leftScoreEl = document.getElementById("leftScore");
         const rightScoreEl = document.getElementById("rightScore");
         const statusEl = document.getElementById("status");
+        const touchButtons = document.querySelectorAll(".touch-btn");
 
         const world = {
             width: canvas.width,
@@ -204,6 +276,10 @@
         let touchState = {
             side: null,
             count: 0
+        };
+        let touchContacts = {
+            left: false,
+            right: false
         };
         const whistleAudio = new Audio("audio/apito.mp3");
         const crowdAudio = new Audio("audio/gol-torcida.mp3");
@@ -349,6 +425,8 @@
             rallyStarted = false;
             touchState.side = null;
             touchState.count = 0;
+            touchContacts.left = false;
+            touchContacts.right = false;
 
             positionPlayers();
             positionBall(nextServer);
@@ -374,6 +452,8 @@
             roundEndedAt = performance.now();
             touchState.side = null;
             touchState.count = 0;
+            touchContacts.left = false;
+            touchContacts.right = false;
 
             if (side === "left") {
                 score.left += 1;
@@ -466,17 +546,24 @@
             const distance = Math.hypot(dx, dy);
             const collisionDistance = ball.radius + player.radius;
 
-            if (distance === 0 || distance >= collisionDistance) return false;
+            if (distance === 0 || distance >= collisionDistance) {
+                touchContacts[player.side] = false;
+                return false;
+            }
 
             const nx = dx / distance;
             const ny = dy / distance;
             const overlap = collisionDistance - distance;
+            const isNewTouch = !touchContacts[player.side];
+
+            touchContacts[player.side] = true;
+            touchContacts[player.side === "left" ? "right" : "left"] = false;
 
             ball.x += nx * overlap;
             ball.y += ny * overlap;
 
             if (!rallyStarted) {
-                if (!registerTouch(player.side)) return true;
+                if (isNewTouch && !registerTouch(player.side)) return true;
                 rallyStarted = true;
                 applyHitTrajectory(player, 5.1);
                 ball.spin = player.vx * 0.05;
@@ -484,6 +571,7 @@
                 return true;
             }
 
+            if (!isNewTouch) return true;
             if (!registerTouch(player.side)) return true;
             applyHitTrajectory(player, 11.9);
             ball.spin = player.vx * 0.06;
@@ -705,6 +793,40 @@
                 controls[event.code] = false;
                 event.preventDefault();
             }
+        });
+
+        function setTouchControlState(button, isPressed) {
+            const key = button.dataset.key;
+            if (!(key in controls)) return;
+
+            unlockAudio();
+            controls[key] = isPressed;
+            button.classList.toggle("active", isPressed);
+        }
+
+        touchButtons.forEach((button) => {
+            button.addEventListener("pointerdown", (event) => {
+                event.preventDefault();
+                setTouchControlState(button, true);
+            });
+
+            button.addEventListener("pointerup", () => {
+                setTouchControlState(button, false);
+            });
+
+            button.addEventListener("pointercancel", () => {
+                setTouchControlState(button, false);
+            });
+
+            button.addEventListener("pointerleave", (event) => {
+                if (event.pointerType !== "mouse") {
+                    setTouchControlState(button, false);
+                }
+            });
+        });
+
+        window.addEventListener("pointerup", () => {
+            touchButtons.forEach((button) => setTouchControlState(button, false));
         });
 
         resetRally(server);
