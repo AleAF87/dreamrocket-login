@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adventure na Floresta</title>
+    <style>
+        :root {
+            --sky: #d5f1ff;
+            --mist: rgba(231, 248, 255, 0.7);
+            --grass-light: #7bc96f;
+            --grass-dark: #4f8b47;
+            --dirt: #8d6843;
+            --dirt-edge: #6e4f31;
+            --panel: rgba(247, 243, 230, 0.88);
+            --ink: #17311a;
+            --accent: #ca7a2b;
+            --danger: #c94a41;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 18px;
+            font-family: "Trebuchet MS", Arial, sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top, rgba(255, 255, 255, 0.95), transparent 36%),
+                linear-gradient(180deg, #a7dcff 0%, var(--sky) 30%, #dff4c7 100%);
+        }
+
+        .game-shell {
+            width: min(1100px, 100%);
+            padding: 18px;
+            border-radius: 28px;
+            background: rgba(255, 255, 255, 0.45);
+            box-shadow: 0 24px 80px rgba(15, 50, 24, 0.2);
+            backdrop-filter: blur(14px);
+        }
+
+        .hud {
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(1.5rem, 2.6vw, 2.3rem);
+        }
+
+        .badges,
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .badge,
+        .panel {
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: var(--panel);
+            box-shadow: 0 10px 28px rgba(15, 50, 24, 0.08);
+            font-weight: 700;
+        }
+
+        .controls {
+            margin-top: 14px;
+            font-size: 0.95rem;
+        }
+
+        canvas {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 24px;
+            background: linear-gradient(180deg, #c7eeff 0%, #e9f9ff 26%, #84c96d 26%, #4c8b46 100%);
+            box-shadow: inset 0 -40px 60px rgba(20, 58, 22, 0.18);
+        }
+
+        .legend {
+            margin-top: 12px;
+            padding: 10px 14px;
+            border-radius: 16px;
+            background: rgba(247, 243, 230, 0.72);
+            font-size: 0.94rem;
+        }
+
+        strong {
+            color: #714300;
+        }
+
+        @media (max-width: 640px) {
+            .game-shell {
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="game-shell">
+        <div class="hud">
+            <h1>Espada na Floresta</h1>
+            <div class="badges">
+                <div class="badge" id="playerHp">HP do Herói: 6</div>
+                <div class="badge" id="enemyCount">Inimigos Restantes: 0</div>
+                <div class="badge" id="status">Encontre os monstros na floresta.</div>
+            </div>
+        </div>
+
+        <canvas id="game" width="980" height="620" aria-label="Jogo de aventura em floresta"></canvas>
+
+        <div class="controls">
+            <div class="panel"><strong>WASD</strong> ou <strong>Setas</strong> para andar</div>
+            <div class="panel"><strong>Espaço</strong> para atacar com a espada</div>
+            <div class="panel">Cada golpe tira <strong>1 HP</strong> dos inimigos</div>
+        </div>
+
+        <div class="legend">
+            Há dois tipos de inimigos: <strong>Lobo Sombrio</strong> e <strong>Slime Selvagem</strong>.
+            Cada um nasce com entre <strong>3 e 7 HP</strong>. Elimine todos para vencer.
+        </div>
+    </main>
+
+    <script>
+        const canvas = document.getElementById("game");
+        const ctx = canvas.getContext("2d");
+
+        const playerHpEl = document.getElementById("playerHp");
+        const enemyCountEl = document.getElementById("enemyCount");
+        const statusEl = document.getElementById("status");
+
+        const world = {
+            width: canvas.width,
+            height: canvas.height,
+            groundTop: 170,
+            floorPadding: 48
+        };
+
+        const keys = {};
+        const randomHp = () => 3 + Math.floor(Math.random() * 5);
+
+        const player = {
+            x: world.width * 0.5,
+            y: 360,
+            radius: 18,
+            speed: 2.8,
+            facingX: 1,
+            facingY: 0.45,
+            attackCooldown: 0,
+            attackTimer: 0,
+            hp: 6,
+            maxHp: 6,
+            hurtTimer: 0
+        };
+
+        const decorations = createDecorations();
+        const enemies = createEnemies();
+        let gameWon = false;
+        let gameOver = false;
+
+        function createDecorations() {
+            const items = [];
+
+            for (let i = 0; i < 15; i += 1) {
+                items.push({
+                    kind: "tree",
+                    x: 80 + Math.random() * 820,
+                    y: 170 + Math.random() * 380,
+                    scale: 0.8 + Math.random() * 0.65
+                });
+            }
+
+            for (let i = 0; i < 10; i += 1) {
+                items.push({
+                    kind: "rock",
+                    x: 70 + Math.random() * 830,
+                    y: 190 + Math.random() * 360,
+                    scale: 0.8 + Math.random() * 0.5
+                });
+            }
+
+            return items.sort((a, b) => a.y - b.y);
+        }
+
+        function createEnemy(type, x, y) {
+            const hp = randomHp();
+            return {
+                type,
+                x,
+                y,
+                vx: 0,
+                vy: 0,
+                hp,
+                maxHp: hp,
+                radius: type === "wolf" ? 22 : 18,
+                speed: type === "wolf" ? 1.2 : 0.8,
+                color: type === "wolf" ? "#5c5a74" : "#74d76d",
+                accent: type === "wolf" ? "#9a95bb" : "#d4ff85",
+                attackCooldown: 0,
+                hurtTimer: 0,
+                wanderAngle: Math.random() * Math.PI * 2
+            };
+        }
+
+        function createEnemies() {
+            return [
+                createEnemy("wolf", 180, 260),
+                createEnemy("slime", 760, 250),
+                createEnemy("wolf", 300, 470),
+                createEnemy("slime", 650, 430),
+                createEnemy("wolf", 820, 510),
+                createEnemy("slime", 150, 500)
+            ];
+        }
+
+        function clampActor(actor) {
+            actor.x = Math.max(36, Math.min(world.width - 36, actor.x));
+            actor.y = Math.max(world.groundTop + 26, Math.min(world.height - world.floorPadding, actor.y));
+        }
+
+        function updateHud() {
+            playerHpEl.textContent = `HP do Herói: ${player.hp}`;
+            enemyCountEl.textContent = `Inimigos Restantes: ${enemies.length}`;
+
+            if (gameOver) {
+                statusEl.textContent = "O herói caiu. Recarregue a página para tentar de novo.";
+                return;
+            }
+
+            if (gameWon) {
+                statusEl.textContent = "Floresta limpa. Você venceu!";
+                return;
+            }
+
+            if (player.attackTimer > 0) {
+                statusEl.textContent = "Espadada!";
+                return;
+            }
+
+            const nearbyEnemy = enemies.find((enemy) => distance(player, enemy) < 90);
+            statusEl.textContent = nearbyEnemy
+                ? "Inimigo por perto. Aperte Espaço."
+                : "Explore a floresta e procure monstros.";
+        }
+
+        function distance(a, b) {
+            return Math.hypot(a.x - b.x, a.y - b.y);
+        }
+
+        function normalize(x, y) {
+            const length = Math.hypot(x, y) || 1;
+            return { x: x / length, y: y / length };
+        }
+
+        function triggerAttack() {
+            if (player.attackCooldown > 0 || gameWon || gameOver) return;
+
+            player.attackCooldown = 22;
+            player.attackTimer = 10;
+
+            const slashReach = 54;
+            const slashWidth = 42;
+            const facing = normalize(player.facingX, player.facingY);
+            const slashCenterX = player.x + facing.x * slashReach;
+            const slashCenterY = player.y + facing.y * slashReach;
+
+            for (let i = enemies.length - 1; i >= 0; i -= 1) {
+                const enemy = enemies[i];
+                const dx = enemy.x - slashCenterX;
+                const dy = enemy.y - slashCenterY;
+                const hit = Math.hypot(dx, dy) <= slashWidth + enemy.radius;
+
+                if (!hit) continue;
+
+                enemy.hp -= 1;
+                enemy.hurtTimer = 10;
+                enemy.vx += facing.x * 4.8;
+                enemy.vy += facing.y * 4.8;
+
+                if (enemy.hp <= 0) {
+                    enemies.splice(i, 1);
+                }
+            }
+
+            if (enemies.length === 0) {
+                gameWon = true;
+            }
+        }
+
+        function updatePlayer() {
+            let moveX = 0;
+            let moveY = 0;
+
+            if (keys.KeyA || keys.ArrowLeft) moveX -= 1;
+            if (keys.KeyD || keys.ArrowRight) moveX += 1;
+            if (keys.KeyW || keys.ArrowUp) moveY -= 1;
+            if (keys.KeyS || keys.ArrowDown) moveY += 1;
+
+            if (moveX !== 0 || moveY !== 0) {
+                const direction = normalize(moveX, moveY);
+                player.x += direction.x * player.speed;
+                player.y += direction.y * player.speed;
+                player.facingX = direction.x;
+                player.facingY = direction.y;
+            }
+
+            clampActor(player);
+
+            if (player.attackCooldown > 0) player.attackCooldown -= 1;
+            if (player.attackTimer > 0) player.attackTimer -= 1;
+            if (player.hurtTimer > 0) player.hurtTimer -= 1;
+        }
+
+        function updateEnemies() {
+            for (const enemy of enemies) {
+                const dist = distance(enemy, player);
+                const chasing = dist < 200;
+
+                if (chasing && !gameOver && !gameWon) {
+                    const dir = normalize(player.x - enemy.x, player.y - enemy.y);
+                    enemy.vx += dir.x * enemy.speed * 0.18;
+                    enemy.vy += dir.y * enemy.speed * 0.18;
+                } else {
+                    enemy.wanderAngle += (Math.random() - 0.5) * 0.14;
+                    enemy.vx += Math.cos(enemy.wanderAngle) * 0.045;
+                    enemy.vy += Math.sin(enemy.wanderAngle) * 0.045;
+                }
+
+                enemy.vx *= 0.9;
+                enemy.vy *= 0.9;
+                enemy.x += enemy.vx;
+                enemy.y += enemy.vy;
+
+                clampActor(enemy);
+
+                if (enemy.attackCooldown > 0) enemy.attackCooldown -= 1;
+                if (enemy.hurtTimer > 0) enemy.hurtTimer -= 1;
+
+                if (dist < enemy.radius + player.radius + 6 && enemy.attackCooldown <= 0 && !gameOver && !gameWon) {
+                    player.hp -= 1;
+                    player.hurtTimer = 18;
+                    enemy.attackCooldown = 45;
+
+                    const bounce = normalize(player.x - enemy.x, player.y - enemy.y);
+                    player.x += bounce.x * 18;
+                    player.y += bounce.y * 18;
+                    clampActor(player);
+
+                    if (player.hp <= 0) {
+                        player.hp = 0;
+                        gameOver = true;
+                    }
+                }
+            }
+        }
+
+        function drawSky() {
+            ctx.fillStyle = "#effbff";
+            ctx.beginPath();
+            ctx.arc(130, 88, 38, 0, Math.PI * 2);
+            ctx.arc(166, 90, 28, 0, Math.PI * 2);
+            ctx.arc(100, 100, 24, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(830, 94, 44, 0, Math.PI * 2);
+            ctx.arc(784, 97, 30, 0, Math.PI * 2);
+            ctx.arc(870, 106, 24, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = "rgba(255,255,255,0.35)";
+            ctx.fillRect(0, 142, world.width, 22);
+        }
+
+        function drawGround() {
+            ctx.fillStyle = "#5b9f4d";
+            ctx.fillRect(0, world.groundTop, world.width, world.height - world.groundTop);
+
+            ctx.fillStyle = "#6fb25b";
+            for (let i = 0; i < 9; i += 1) {
+                ctx.beginPath();
+                ctx.ellipse(60 + i * 120, 210 + (i % 2) * 24, 90, 34, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.fillStyle = "#8d6843";
+            ctx.beginPath();
+            ctx.moveTo(70, 560);
+            ctx.bezierCurveTo(220, 510, 350, 590, 500, 546);
+            ctx.bezierCurveTo(650, 500, 780, 560, 920, 520);
+            ctx.lineTo(920, 620);
+            ctx.lineTo(70, 620);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.strokeStyle = "#6e4f31";
+            ctx.lineWidth = 8;
+            ctx.stroke();
+        }
+
+        function drawTree(item) {
+            ctx.save();
+            ctx.translate(item.x, item.y);
+            ctx.scale(item.scale, item.scale);
+
+            ctx.fillStyle = "rgba(25, 55, 20, 0.18)";
+            ctx.beginPath();
+            ctx.ellipse(0, 28, 38, 14, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = "#6d4726";
+            ctx.fillRect(-9, -10, 18, 42);
+
+            ctx.fillStyle = "#2c6b34";
+            ctx.beginPath();
+            ctx.arc(0, -26, 34, 0, Math.PI * 2);
+            ctx.arc(-24, -8, 24, 0, Math.PI * 2);
+            ctx.arc(24, -8, 24, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = "#4f9951";
+            ctx.beginPath();
+            ctx.arc(-8, -32, 16, 0, Math.PI * 2);
+            ctx.arc(16, -20, 13, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function drawRock(item) {
+            ctx.save();
+            ctx.translate(item.x, item.y);
+            ctx.scale(item.scale, item.scale);
+
+            ctx.fillStyle = "rgba(25, 55, 20, 0.16)";
+            ctx.beginPath();
+            ctx.ellipse(0, 14, 24, 10, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = "#8f998e";
+            ctx.beginPath();
+            ctx.moveTo(-18, 10);
+            ctx.lineTo(-10, -8);
+            ctx.lineTo(6, -12);
+            ctx.lineTo(20, 2);
+            ctx.lineTo(14, 14);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function drawDecoration(item) {
+            if (item.kind === "tree") drawTree(item);
+            if (item.kind === "rock") drawRock(item);
+        }
+
+        function drawHpBar(actor, width) {
+            ctx.fillStyle = "rgba(33, 43, 26, 0.45)";
+            ctx.fillRect(actor.x - width / 2, actor.y - actor.radius - 22, width, 6);
+            ctx.fillStyle = "#ff7560";
+            ctx.fillRect(actor.x - width / 2, actor.y - actor.radius - 22, width * (actor.hp / actor.maxHp), 6);
+        }
+
+        function drawPlayer() {
+            ctx.save();
+            ctx.translate(player.x, player.y);
+
+            ctx.fillStyle = "rgba(18, 46, 22, 0.2)";
+            ctx.beginPath();
+            ctx.ellipse(0, 22, 18, 9, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (player.hurtTimer % 4 < 2) {
+                ctx.fillStyle = "#335fa8";
+                ctx.fillRect(-12, -6, 24, 26);
+
+                ctx.fillStyle = "#f1c69a";
+                ctx.beginPath();
+                ctx.arc(0, -20, 12, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = "#5b3417";
+                ctx.beginPath();
+                ctx.arc(0, -25, 13, Math.PI, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = "#16314f";
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(-7, 20);
+                ctx.lineTo(-7, 35);
+                ctx.moveTo(7, 20);
+                ctx.lineTo(7, 35);
+                ctx.stroke();
+
+                const facing = normalize(player.facingX, player.facingY);
+                const swordLength = player.attackTimer > 0 ? 34 : 26;
+                const swordSpread = player.attackTimer > 0 ? 0.95 : 0.45;
+                const swordX = facing.x * swordLength;
+                const swordY = facing.y * swordLength;
+
+                ctx.strokeStyle = "#7b4d1f";
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                ctx.moveTo(0, -2);
+                ctx.lineTo(facing.x * 12, facing.y * 12);
+                ctx.stroke();
+
+                ctx.strokeStyle = "#edf3fb";
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(facing.x * 10, facing.y * 10);
+                ctx.lineTo(swordX, swordY);
+                ctx.stroke();
+
+                ctx.fillStyle = "#edc04e";
+                ctx.fillRect(facing.x * 8 - 5, facing.y * 8 - 3, 10, 6);
+
+                if (player.attackTimer > 0) {
+                    ctx.strokeStyle = "rgba(255, 245, 194, 0.65)";
+                    ctx.lineWidth = 6;
+                    ctx.beginPath();
+                    ctx.arc(facing.x * 18, facing.y * 18, 28, -swordSpread, swordSpread);
+                    ctx.stroke();
+                }
+            }
+
+            ctx.restore();
+            drawHpBar(player, 56);
+        }
+
+        function drawWolf(enemy) {
+            ctx.fillStyle = enemy.hurtTimer > 0 ? "#b95a5a" : enemy.color;
+            ctx.beginPath();
+            ctx.ellipse(enemy.x, enemy.y + 6, 24, 16, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = enemy.accent;
+            ctx.beginPath();
+            ctx.ellipse(enemy.x + 14, enemy.y - 8, 13, 11, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(enemy.x + 10, enemy.y - 15);
+            ctx.lineTo(enemy.x + 14, enemy.y - 27);
+            ctx.lineTo(enemy.x + 18, enemy.y - 14);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(enemy.x + 2, enemy.y - 13);
+            ctx.lineTo(enemy.x + 6, enemy.y - 25);
+            ctx.lineTo(enemy.x + 11, enemy.y - 13);
+            ctx.fill();
+
+            ctx.strokeStyle = "#3b394f";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(enemy.x - 10, enemy.y + 16);
+            ctx.lineTo(enemy.x - 10, enemy.y + 27);
+            ctx.moveTo(enemy.x + 4, enemy.y + 16);
+            ctx.lineTo(enemy.x + 4, enemy.y + 27);
+            ctx.stroke();
+        }
+
+        function drawSlime(enemy) {
+            ctx.fillStyle = enemy.hurtTimer > 0 ? "#d76755" : enemy.color;
+            ctx.beginPath();
+            ctx.moveTo(enemy.x - 18, enemy.y + 12);
+            ctx.quadraticCurveTo(enemy.x - 24, enemy.y - 16, enemy.x, enemy.y - 20);
+            ctx.quadraticCurveTo(enemy.x + 24, enemy.y - 14, enemy.x + 18, enemy.y + 12);
+            ctx.quadraticCurveTo(enemy.x + 6, enemy.y + 18, enemy.x, enemy.y + 14);
+            ctx.quadraticCurveTo(enemy.x - 7, enemy.y + 22, enemy.x - 18, enemy.y + 12);
+            ctx.fill();
+
+            ctx.fillStyle = enemy.accent;
+            ctx.beginPath();
+            ctx.arc(enemy.x - 6, enemy.y - 6, 4, 0, Math.PI * 2);
+            ctx.arc(enemy.x + 8, enemy.y - 4, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawEnemy(enemy) {
+            ctx.fillStyle = "rgba(18, 46, 22, 0.18)";
+            ctx.beginPath();
+            ctx.ellipse(enemy.x, enemy.y + enemy.radius, 18, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (enemy.type === "wolf") drawWolf(enemy);
+            if (enemy.type === "slime") drawSlime(enemy);
+
+            drawHpBar(enemy, 42);
+
+            ctx.fillStyle = "#17311a";
+            ctx.font = "bold 12px Trebuchet MS";
+            ctx.textAlign = "center";
+            ctx.fillText(`${enemy.hp} HP`, enemy.x, enemy.y - enemy.radius - 28);
+        }
+
+        function drawEntities() {
+            const actors = [
+                ...decorations,
+                ...enemies.map((enemy) => ({ ...enemy, kind: "enemy" })),
+                { ...player, kind: "player" }
+            ].sort((a, b) => a.y - b.y);
+
+            for (const actor of actors) {
+                if (actor.kind === "tree" || actor.kind === "rock") drawDecoration(actor);
+                if (actor.kind === "enemy") drawEnemy(actor);
+                if (actor.kind === "player") drawPlayer();
+            }
+        }
+
+        function drawOverlay() {
+            if (!gameWon && !gameOver) return;
+
+            ctx.fillStyle = "rgba(10, 28, 14, 0.38)";
+            ctx.fillRect(0, 0, world.width, world.height);
+
+            ctx.fillStyle = "#fff8e8";
+            ctx.beginPath();
+            ctx.roundRect(260, 220, 460, 140, 28);
+            ctx.fill();
+
+            ctx.fillStyle = "#17311a";
+            ctx.textAlign = "center";
+            ctx.font = "bold 34px Trebuchet MS";
+            ctx.fillText(gameWon ? "Vitória na Floresta" : "Fim de Jogo", world.width / 2, 275);
+
+            ctx.font = "20px Trebuchet MS";
+            ctx.fillText(
+                gameWon ? "Todos os inimigos foram derrotados." : "Os monstros derrubaram o herói.",
+                world.width / 2,
+                315
+            );
+
+            ctx.font = "18px Trebuchet MS";
+            ctx.fillText("Recarregue a página para jogar novamente.", world.width / 2, 345);
+        }
+
+        function drawScene() {
+            ctx.clearRect(0, 0, world.width, world.height);
+            drawSky();
+            drawGround();
+            drawEntities();
+            drawOverlay();
+        }
+
+        function gameLoop() {
+            if (!gameWon && !gameOver) {
+                updatePlayer();
+                updateEnemies();
+            }
+
+            updateHud();
+            drawScene();
+            requestAnimationFrame(gameLoop);
+        }
+
+        window.addEventListener("keydown", (event) => {
+            if (event.code === "Space") {
+                triggerAttack();
+                event.preventDefault();
+                return;
+            }
+
+            keys[event.code] = true;
+        });
+
+        window.addEventListener("keyup", (event) => {
+            keys[event.code] = false;
+        });
+
+        updateHud();
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
