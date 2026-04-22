@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDV - DreamRocket</title>
+
+    <link rel="stylesheet" href="css/pdv.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="auth-pending pdv-page">
+    <div class="pdv-page-wrapper">
+        <main class="pdv-screen">
+            <section class="pdv-main">
+                <div class="pdv-panel">
+                    <div class="pdv-panel-body">
+                        <div class="pdv-customer-box">
+                            <div class="pdv-customer-header">
+                                <h2>Cliente</h2>
+                                <div class="form-check m-0">
+                                    <input class="form-check-input" type="checkbox" id="pdvClienteNaoInformar">
+                                    <label class="form-check-label" for="pdvClienteNaoInformar">Nao informar</label>
+                                </div>
+                            </div>
+                            <div class="pdv-customer-grid">
+                                <div class="pdv-customer-grid-document">
+                                    <label for="pdvClienteDocumento" class="form-label">CPF / CNPJ</label>
+                                    <div class="pdv-customer-autocomplete">
+                                        <input id="pdvClienteDocumento" type="text" class="form-control" placeholder="Digite o CPF ou CNPJ" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+                                        <div id="pdvClienteSuggestions" class="pdv-customer-suggestions d-none"></div>
+                                    </div>
+                                </div>
+
+                                <div class="pdv-customer-grid-name">
+                                    <label for="pdvClienteNome" class="form-label">Nome</label>
+                                    <input id="pdvClienteNome" type="text" class="form-control" placeholder="Nome do cliente" readonly>
+                                </div>
+                            </div>
+                            <div class="pdv-customer-footer">
+                                <div id="pdvClienteStatus" class="pdv-search-helper d-none"></div>
+                            </div>
+                        </div>
+
+                        <div class="pdv-search-box">
+                            <h2>Busca de produtos</h2>
+                            <div class="input-group input-group-lg">
+                                <button id="pdvScannerModeBtn" type="button" class="btn pdv-mode-btn is-active" title="Modo scanner">
+                                    <i class="fas fa-barcode"></i>
+                                </button>
+                                <button id="pdvKeyboardModeBtn" type="button" class="btn pdv-mode-btn" title="Modo teclado">
+                                    <i class="fas fa-keyboard"></i>
+                                </button>
+                                <input id="pdvBusca" type="text" class="form-control" placeholder="Buscar por codigo, descricao ou referencia" autocomplete="off">
+                            </div>
+                            <div id="pdvBuscaInfo" class="pdv-search-meta mt-3 d-none">Modo scanner ativo: leitura por codigo adiciona direto ao carrinho.</div>
+                            <div id="pdvBuscaResultados" class="pdv-search-results mt-3">
+                                <div class="pdv-search-empty">Nenhum produto carregado.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pdv-panel">
+                    <div class="pdv-panel-body">
+                        <div id="pdvCartEmpty" class="pdv-empty-cart">
+                            <div class="pdv-empty-cart-content">
+                                <div class="pdv-empty-cart-icon">
+                                    <i class="fas fa-cart-shopping"></i>
+                                </div>
+                                <h2>Carrinho vazio</h2>
+                                <p>Os itens adicionados ao PDV aparecerao aqui.</p>
+                            </div>
+                        </div>
+                        <div id="pdvCartItems" class="pdv-cart-items d-none"></div>
+                    </div>
+                </div>
+            </section>
+
+            <footer class="pdv-summary">
+                <button type="button" class="btn pdv-summary-action-btn" id="pdvFullscreenBtn" title="Tela cheia">
+                    <i class="fas fa-expand"></i>
+                </button>
+
+                <div class="pdv-summary-card">
+                    <span class="pdv-summary-label">Subtotal</span>
+                    <strong class="pdv-summary-value" id="pdvSubtotal">R$ 0,00</strong>
+                </div>
+
+                <div class="pdv-summary-card">
+                    <span class="pdv-summary-label">Desconto</span>
+                    <div class="pdv-discount-fields">
+                        <div class="pdv-discount-field">
+                            <label for="pdvDescontoValor" class="pdv-inline-label">Valor</label>
+                            <input id="pdvDescontoValor" type="text" class="form-control form-control-sm" placeholder="R$ 0,00" inputmode="decimal">
+                        </div>
+                        <div class="pdv-discount-field pdv-discount-percent">
+                            <label for="pdvDescontoPercentual" class="pdv-inline-label">%</label>
+                            <input id="pdvDescontoPercentual" type="text" class="form-control form-control-sm" placeholder="0" inputmode="numeric">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pdv-summary-card is-total">
+                    <span class="pdv-summary-label">Total</span>
+                    <strong class="pdv-summary-value" id="pdvTotal">R$ 0,00</strong>
+                </div>
+
+                <button type="button" class="btn btn-primary pdv-summary-action-btn" id="pdvOpenPaymentBtn">
+                    <i class="fas fa-credit-card me-1"></i>Pagamento
+                </button>
+            </footer>
+        </main>
+    </div>
+
+    <div class="modal fade" id="clienteCadastroModal" tabindex="-1" aria-labelledby="clienteCadastroModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content estoque-option-modal">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="clienteCadastroModalLabel">Cadastrar cliente</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="clienteCadastroFeedback" class="alert alert-warning py-2 d-none" role="alert"></div>
+
+                    <div class="mb-3">
+                        <label for="modalClienteDocumento" class="form-label">CPF / CNPJ</label>
+                        <input id="modalClienteDocumento" type="text" class="form-control" readonly>
+                    </div>
+
+                    <div class="mb-0">
+                        <label for="modalClienteNome" class="form-label">Nome</label>
+                        <input id="modalClienteNome" type="text" class="form-control" placeholder="Informe o nome do cliente">
+                    </div>
+
+                    <div class="mt-3">
+                        <label for="modalClienteDataNascimento" class="form-label">Data de nascimento</label>
+                        <input id="modalClienteDataNascimento" type="date" class="form-control">
+                    </div>
+
+                    <div class="mt-3">
+                        <label for="modalClienteWhatsapp" class="form-label">WhatsApp</label>
+                        <input id="modalClienteWhatsapp" type="text" class="form-control" placeholder="(00) 0000-0000 ou (00) 00000-0000" inputmode="numeric">
+                    </div>
+
+                    <div class="mt-3">
+                        <label for="modalClienteEmail" class="form-label">E-mail</label>
+                        <input id="modalClienteEmail" type="email" class="form-control" placeholder="cliente@email.com">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="salvarClienteBtn">Salvar cliente</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="pdvPagamentoModal" tabindex="-1" aria-labelledby="pdvPagamentoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content estoque-option-modal">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="pdvPagamentoModalLabel">Pagamento da venda</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="pdvPagamentoFeedback" class="alert alert-warning py-2 d-none" role="alert"></div>
+
+                    <div class="pdv-payment-cards">
+                        <div class="pdv-payment-card">
+                            <span class="pdv-summary-label">Valor total</span>
+                            <strong class="pdv-payment-value" id="pdvPagamentoValorTotal">R$ 0,00</strong>
+                        </div>
+                        <div class="pdv-payment-card">
+                            <span class="pdv-summary-label">Valor pago</span>
+                            <strong class="pdv-payment-value" id="pdvPagamentoValorPago">R$ 0,00</strong>
+                        </div>
+                        <div class="pdv-payment-card">
+                            <span class="pdv-summary-label">Saldo</span>
+                            <strong class="pdv-payment-value" id="pdvPagamentoSaldo">R$ 0,00</strong>
+                        </div>
+                    </div>
+
+                    <div class="pdv-payment-form">
+                        <div class="pdv-payment-field">
+                            <label for="pdvPagamentoValor" class="form-label">Valor a lancar</label>
+                            <input id="pdvPagamentoValor" type="text" class="form-control" placeholder="R$ 0,00" inputmode="decimal">
+                        </div>
+
+                        <div class="pdv-payment-field">
+                            <label class="form-label">Cobranca</label>
+                            <div class="pdv-payment-toggle-group">
+                                <button type="button" class="btn btn-outline-light is-active" data-charge-mode="manual">Manual</button>
+                                <button type="button" class="btn btn-outline-light" data-charge-mode="maquininha">Maquininha</button>
+                            </div>
+                        </div>
+
+                        <div id="pdvChargeModeInfo" class="pdv-charge-mode-placeholder d-none">
+                            A cobranca por maquininha sera integrada com a SUMUP no proximo passo.
+                        </div>
+
+                        <div id="pdvMachinePaymentControls" class="pdv-machine-grid d-none">
+                            <div class="pdv-payment-field">
+                                <label for="pdvMaquininhaForma" class="form-label">Forma na maquininha</label>
+                                <select id="pdvMaquininhaForma" class="form-select">
+                                    <option value="credito">Credito</option>
+                                    <option value="debito">Debito</option>
+                                </select>
+                            </div>
+
+                            <div class="pdv-payment-field" id="pdvMachineInstallmentsField">
+                                <label for="pdvMaquininhaParcelas" class="form-label">Parcelas</label>
+                                <input id="pdvMaquininhaParcelas" type="text" class="form-control" value="1" inputmode="numeric">
+                            </div>
+                        </div>
+
+                        <div id="pdvManualPaymentControls">
+                            <div class="pdv-payment-toggle-row">
+                                <div class="pdv-payment-toggle-group">
+                                    <button type="button" class="btn btn-outline-light is-active" data-payment-type="avista">A vista</button>
+                                    <button type="button" class="btn btn-outline-light" data-payment-type="parcelado">Parcelado</button>
+                                </div>
+
+                                <span class="pdv-payment-divider">|</span>
+
+                                <div class="pdv-payment-toggle-group">
+                                    <button type="button" class="btn btn-outline-light is-active" data-payment-method="pix">PIX</button>
+                                    <button type="button" class="btn btn-outline-light" data-payment-method="cartao">Cartao</button>
+                                    <button type="button" class="btn btn-outline-light" data-payment-method="dinheiro">Dinheiro</button>
+                                </div>
+                            </div>
+
+                            <div class="pdv-payment-split-grid d-none" id="pdvParceladoFields">
+                                <div class="pdv-payment-field">
+                                    <label for="pdvPagamentoParcelas" class="form-label">Parcelas</label>
+                                    <input id="pdvPagamentoParcelas" type="text" class="form-control" placeholder="1" inputmode="numeric">
+                                </div>
+
+                                <div class="pdv-payment-field">
+                                    <label for="pdvPagamentoJuros" class="form-label">Juros (%)</label>
+                                    <input id="pdvPagamentoJuros" type="text" class="form-control" placeholder="0" inputmode="decimal">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive mt-3 d-none" id="pdvParcelasTabelaWrapper">
+                        <table class="table table-dark table-sm align-middle mb-0 pdv-installments-table">
+                            <thead>
+                                <tr>
+                                    <th>Parcela</th>
+                                    <th>Vencimento</th>
+                                    <th>Subtotal</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pdvParcelasTabelaBody">
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-3">Informe valor, parcelas e juros para visualizar.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="pdv-payment-footer-actions">
+                        <button type="button" class="btn btn-warning px-4" id="pdvMarcarPendenteBtn">Pagamento depois</button>
+                        <button type="button" class="btn btn-success px-4" id="pdvEnviarPagamentoBtn">Enviar</button>
+                        <button type="button" class="btn btn-outline-danger" id="pdvCancelarVendaBtn">Cancelar venda</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="pdvVendaConcluidaModal" tabindex="-1" aria-labelledby="pdvVendaConcluidaModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content pdv-success-modal">
+                <div class="modal-body text-center">
+                    <div class="pdv-success-icon">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <h3 id="pdvVendaConcluidaModalLabel" class="pdv-success-title">Muito obrigado pela compra!</h3>
+                    <p class="pdv-success-text">Venda concluida com sucesso. Uma nova venda sera iniciada automaticamente em 5 segundos.</p>
+                    <button type="button" class="btn btn-success px-4" id="pdvFecharVendaConcluidaBtn">Fechar agora</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="js/pdv.js"></script>
+</body>
+</html>

@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gincana - Projecao</title>
+    <style>
+        :root {
+            --ink: #111;
+            --paper: #fff7df;
+            --red: #ff1f3d;
+            --red-dark: #9f1024;
+            --blue: #0878ff;
+            --blue-dark: #063d96;
+            --yellow: #ffd447;
+            --cyan: #72d8ff;
+            --shadow: rgba(0, 0, 0, 0.24);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            overflow: hidden;
+            font-family: "Trebuchet MS", Arial, sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at 18% 28%, rgba(255, 31, 61, 0.85) 0 8%, transparent 8.3%),
+                radial-gradient(circle at 28% 76%, rgba(255, 31, 61, 0.72) 0 5%, transparent 5.3%),
+                radial-gradient(circle at 9% 72%, rgba(159, 16, 36, 0.75) 0 7%, transparent 7.4%),
+                radial-gradient(circle at 82% 26%, rgba(8, 120, 255, 0.86) 0 8%, transparent 8.3%),
+                radial-gradient(circle at 72% 78%, rgba(8, 120, 255, 0.68) 0 5%, transparent 5.4%),
+                radial-gradient(circle at 92% 72%, rgba(6, 61, 150, 0.72) 0 7%, transparent 7.4%),
+                linear-gradient(90deg, rgba(255, 31, 61, 0.9) 0 50%, rgba(8, 120, 255, 0.92) 50% 100%);
+        }
+
+        body::before,
+        body::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            opacity: 0.98;
+        }
+
+        body::before {
+            background:
+                radial-gradient(circle at 18% 22%, #ff7182 0 5%, transparent 5.4%),
+                radial-gradient(circle at 33% 36%, #ffb0ba 0 2.6%, transparent 2.9%),
+                radial-gradient(circle at 12% 52%, #7b0618 0 4.2%, transparent 4.6%),
+                radial-gradient(circle at 40% 66%, #ff7182 0 3%, transparent 3.4%),
+                radial-gradient(circle at 30% 88%, #fff1b8 0 2.4%, transparent 2.8%);
+            clip-path: polygon(0 0, 52% 0, 45% 8%, 50% 17%, 42% 26%, 48% 35%, 40% 44%, 47% 54%, 39% 65%, 46% 74%, 38% 86%, 45% 100%, 0 100%);
+            mix-blend-mode: screen;
+        }
+
+        body::after {
+            background:
+                radial-gradient(circle at 82% 20%, #72d8ff 0 5%, transparent 5.4%),
+                radial-gradient(circle at 66% 36%, #d7f4ff 0 2.6%, transparent 2.9%),
+                radial-gradient(circle at 88% 54%, #062a73 0 4.2%, transparent 4.6%),
+                radial-gradient(circle at 61% 68%, #72d8ff 0 3%, transparent 3.4%),
+                radial-gradient(circle at 72% 88%, #fff1b8 0 2.4%, transparent 2.8%);
+            clip-path: polygon(55% 0, 100% 0, 100% 100%, 55% 100%, 62% 88%, 54% 77%, 61% 67%, 53% 57%, 60% 46%, 52% 35%, 59% 25%, 51% 14%);
+            mix-blend-mode: screen;
+        }
+
+        main {
+            min-height: 100vh;
+            display: grid;
+            grid-template-rows: auto 1fr;
+            padding: clamp(18px, 3vw, 42px);
+            gap: clamp(16px, 2vw, 28px);
+            position: relative;
+            z-index: 1;
+        }
+
+        h1 {
+            margin: 0;
+            text-align: center;
+            font-size: clamp(2.8rem, 6vw, 7rem);
+            line-height: 0.95;
+            text-transform: uppercase;
+            color: #111;
+            text-shadow: 5px 5px 0 var(--yellow), 9px 9px 0 rgba(255, 255, 255, 0.5), 13px 13px 0 var(--shadow);
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+            gap: clamp(14px, 2vw, 30px);
+            align-items: stretch;
+        }
+
+        .team {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            gap: clamp(12px, 2vw, 22px);
+            border: clamp(5px, 0.8vw, 10px) solid #111;
+            border-radius: 8px;
+            padding: clamp(14px, 2vw, 28px);
+            box-shadow: clamp(8px, 1.4vw, 18px) clamp(8px, 1.4vw, 18px) 0 var(--shadow);
+            min-width: 0;
+            position: relative;
+            overflow: hidden;
+            z-index: 2;
+        }
+
+        .team.team-active {
+            z-index: 8;
+            filter: drop-shadow(0 0 28px rgba(255, 255, 255, 0.72));
+        }
+
+        .team-a {
+            background:
+                radial-gradient(circle at 16% 18%, rgba(255, 255, 255, 0.95) 0 8%, transparent 8.5%),
+                radial-gradient(circle at 84% 82%, rgba(255, 212, 71, 0.72) 0 6%, transparent 6.5%),
+                linear-gradient(135deg, #ff9daa 0%, #ff3952 42%, #b20f29 100%);
+            align-self: center;
+            min-height: 92%;
+            transform: scale(0.94);
+            clip-path: polygon(4% 0, 16% 4%, 28% 0, 40% 4%, 52% 0, 64% 4%, 76% 0, 88% 4%, 96% 0, 100% 14%, 96% 26%, 100% 38%, 96% 50%, 100% 62%, 96% 74%, 100% 86%, 96% 96%, 84% 100%, 72% 96%, 60% 100%, 48% 96%, 36% 100%, 24% 96%, 12% 100%, 4% 96%, 0 94%, 4% 82%, 0 70%, 4% 58%, 0 46%, 4% 34%, 0 22%, 4% 10%);
+        }
+
+        .team-b {
+            background:
+                radial-gradient(circle at 84% 18%, rgba(255, 255, 255, 0.95) 0 8%, transparent 8.5%),
+                radial-gradient(circle at 16% 82%, rgba(255, 212, 71, 0.72) 0 6%, transparent 6.5%),
+                linear-gradient(135deg, #8bdfff 0%, #0878ff 44%, #063d96 100%);
+            align-self: center;
+            min-height: 92%;
+            transform: scale(0.94);
+            clip-path: polygon(4% 0, 16% 4%, 28% 0, 40% 4%, 52% 0, 64% 4%, 76% 0, 88% 4%, 96% 0, 100% 10%, 96% 22%, 100% 34%, 96% 46%, 100% 58%, 96% 70%, 100% 82%, 96% 94%, 88% 100%, 76% 96%, 64% 100%, 52% 96%, 40% 100%, 28% 96%, 16% 100%, 4% 96%, 0 86%, 4% 74%, 0 62%, 4% 50%, 0 38%, 4% 26%, 0 14%);
+        }
+
+        .team::before {
+            content: "";
+            position: absolute;
+            inset: clamp(10px, 1.4vw, 20px);
+            border: clamp(3px, 0.45vw, 6px) dashed rgba(255, 255, 255, 0.72);
+            border-radius: 8px;
+            pointer-events: none;
+        }
+
+        .team-name {
+            margin: 0;
+            min-width: 0;
+            text-align: center;
+            font-size: clamp(2rem, 4.4vw, 5rem);
+            line-height: 1.05;
+            text-transform: uppercase;
+            overflow-wrap: anywhere;
+            position: relative;
+            z-index: 1;
+            color: #fff;
+            text-shadow: 4px 4px 0 #111, 8px 8px 0 var(--shadow);
+        }
+
+        .score {
+            display: grid;
+            place-items: center;
+            border: clamp(5px, 0.7vw, 9px) solid #111;
+            border-radius: 8px;
+            color: #fff;
+            background: #111;
+            font-size: clamp(8rem, 20vw, 24rem);
+            font-weight: 900;
+            line-height: 0.9;
+            text-shadow: clamp(4px, 0.8vw, 12px) clamp(4px, 0.8vw, 12px) 0 rgba(0, 0, 0, 0.28);
+            transform-origin: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .team-a .score {
+            box-shadow: inset 0 clamp(-22px, -2vw, -12px) 0 var(--red);
+        }
+
+        .team-b .score {
+            box-shadow: inset 0 clamp(-22px, -2vw, -12px) 0 var(--blue);
+        }
+
+        .score.score-up {
+            animation: scoreUp 900ms cubic-bezier(0.2, 0.85, 0.2, 1.2);
+            z-index: 30;
+        }
+
+        .score.score-down {
+            animation: scoreDown 850ms ease-in-out;
+            z-index: 30;
+        }
+
+        @keyframes scoreUp {
+            0% {
+                transform: scale(1);
+                background: #111;
+                box-shadow: inset 0 clamp(-22px, -2vw, -12px) 0 var(--yellow);
+            }
+
+            35% {
+                transform: scale(1.15) rotate(-2deg);
+                background: #105bbf;
+                color: #fffbd1;
+                box-shadow: 0 0 0 clamp(10px, 1.3vw, 18px) rgba(255, 212, 71, 0.72), 0 0 clamp(36px, 5vw, 90px) rgba(114, 216, 255, 0.88);
+            }
+
+            68% {
+                transform: scale(0.96) rotate(1deg);
+            }
+
+            100% {
+                transform: scale(1);
+                background: #111;
+            }
+        }
+
+        @keyframes scoreDown {
+            0% {
+                transform: translateY(0) rotate(0);
+                background: #111;
+            }
+
+            18% {
+                transform: translateY(18px) rotate(2deg);
+                background: #8f1d2c;
+                color: #ffe1e6;
+                box-shadow: 0 0 0 clamp(8px, 1vw, 16px) rgba(255, 79, 94, 0.55), 0 0 clamp(24px, 4vw, 70px) rgba(255, 79, 94, 0.75);
+            }
+
+            34% {
+                transform: translateY(-8px) rotate(-2deg);
+            }
+
+            50% {
+                transform: translateY(10px) rotate(1deg);
+            }
+
+            72% {
+                transform: translateY(-4px) rotate(-1deg);
+            }
+
+            100% {
+                transform: translateY(0) rotate(0);
+                background: #111;
+            }
+        }
+
+        .versus {
+            align-self: center;
+            display: grid;
+            place-items: center;
+            width: clamp(84px, 10vw, 150px);
+            aspect-ratio: 1;
+            border: clamp(5px, 0.8vw, 10px) solid #111;
+            border-radius: 50%;
+            background: var(--yellow);
+            color: #111;
+            font-size: clamp(1.8rem, 3.5vw, 4.5rem);
+            font-weight: 900;
+            transform: rotate(-8deg);
+            box-shadow: clamp(6px, 1vw, 14px) clamp(6px, 1vw, 14px) 0 var(--shadow);
+        }
+
+        .status {
+            position: fixed;
+            left: 16px;
+            bottom: 12px;
+            font-size: 0.95rem;
+            font-weight: 800;
+            opacity: 0.72;
+        }
+
+        .confetti {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            opacity: 0.45;
+            background-image:
+                linear-gradient(45deg, var(--red) 25%, transparent 25%),
+                linear-gradient(-45deg, var(--blue) 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, var(--yellow) 75%),
+                linear-gradient(-45deg, transparent 75%, var(--cyan) 75%);
+            background-size: 80px 80px;
+            background-position: 0 0, 0 40px, 40px -40px, -40px 0;
+            mask-image: radial-gradient(circle at center, transparent 0 35%, #000 62%);
+        }
+
+        .lightning-divider {
+            position: fixed;
+            top: -5vh;
+            left: 50%;
+            width: clamp(46px, 5vw, 92px);
+            height: 110vh;
+            pointer-events: none;
+            z-index: 1;
+            transform: translateX(-50%);
+            filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 34px rgba(255, 212, 71, 0.72));
+            animation: lightningGlow 1.6s ease-in-out infinite;
+        }
+
+        .lightning-divider::before,
+        .lightning-divider::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            clip-path: polygon(44% 0, 68% 0, 56% 12%, 78% 18%, 49% 31%, 70% 39%, 42% 53%, 64% 61%, 35% 78%, 56% 86%, 38% 100%, 16% 100%, 35% 86%, 17% 78%, 42% 62%, 22% 53%, 51% 39%, 31% 31%, 58% 18%, 36% 12%);
+        }
+
+        .lightning-divider::before {
+            background: #fff8b7;
+            box-shadow: 0 0 24px rgba(255, 244, 158, 0.95), 0 0 58px rgba(255, 212, 71, 0.82);
+        }
+
+        .lightning-divider::after {
+            inset: -6% -18%;
+            background: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.95) 18%, transparent 34%, rgba(255, 255, 255, 0.95) 56%, transparent 72%, rgba(255, 255, 255, 0.78) 92%, transparent 100%);
+            mix-blend-mode: screen;
+            opacity: 0.78;
+            animation: lightningRun 1.15s linear infinite;
+        }
+
+        @keyframes lightningGlow {
+            0%, 100% {
+                opacity: 0.86;
+                transform: translateX(-50%) scaleX(0.92);
+                filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.78)) drop-shadow(0 0 26px rgba(255, 212, 71, 0.64));
+            }
+
+            36% {
+                opacity: 1;
+                transform: translateX(-50%) scaleX(1.08);
+                filter: drop-shadow(0 0 22px rgba(255, 255, 255, 1)) drop-shadow(0 0 58px rgba(255, 212, 71, 1));
+            }
+
+            42% {
+                opacity: 0.72;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        @keyframes lightningRun {
+            0% {
+                transform: translateY(-34%);
+            }
+
+            100% {
+                transform: translateY(34%);
+            }
+        }
+
+        .motion-field {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            width: 50%;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .motion-left {
+            left: 0;
+        }
+
+        .motion-right {
+            right: 0;
+        }
+
+        .paint-drop {
+            position: absolute;
+            width: var(--size);
+            height: var(--size);
+            left: var(--x);
+            top: var(--y);
+            border-radius: 48% 52% 44% 56% / 58% 42% 56% 44%;
+            opacity: 0;
+            filter: blur(0.5px);
+            animation: paintPass var(--duration) ease-in-out infinite;
+            animation-delay: var(--delay);
+            transform: translate3d(0, 0, 0) rotate(var(--rotate));
+        }
+
+        .motion-left .paint-drop {
+            background: radial-gradient(circle at 34% 28%, #ffd0d6 0 12%, var(--red) 13% 58%, var(--red-dark) 60% 100%);
+            box-shadow: 0 0 clamp(18px, 3vw, 46px) rgba(255, 31, 61, 0.42);
+        }
+
+        .motion-right .paint-drop {
+            background: radial-gradient(circle at 34% 28%, #d8f5ff 0 12%, var(--blue) 13% 58%, var(--blue-dark) 60% 100%);
+            box-shadow: 0 0 clamp(18px, 3vw, 46px) rgba(8, 120, 255, 0.42);
+        }
+
+        .paint-drop:nth-child(1) {
+            --size: clamp(54px, 6vw, 120px);
+            --x: 9%;
+            --y: 12%;
+            --duration: 7s;
+            --delay: -1s;
+            --rotate: 18deg;
+            --sx: -24vw;
+            --sy: -18vh;
+            --mx: 10vw;
+            --my: 24vh;
+            --ex: 32vw;
+            --ey: -10vh;
+        }
+
+        .paint-drop:nth-child(2) {
+            --size: clamp(34px, 4vw, 82px);
+            --x: 72%;
+            --y: 20%;
+            --duration: 8.5s;
+            --delay: -4s;
+            --rotate: -22deg;
+            --sx: 18vw;
+            --sy: -24vh;
+            --mx: -12vw;
+            --my: 18vh;
+            --ex: -28vw;
+            --ey: 22vh;
+        }
+
+        .paint-drop:nth-child(3) {
+            --size: clamp(70px, 8vw, 150px);
+            --x: 45%;
+            --y: 58%;
+            --duration: 9.5s;
+            --delay: -2.5s;
+            --rotate: 34deg;
+            --sx: -12vw;
+            --sy: 34vh;
+            --mx: 18vw;
+            --my: -22vh;
+            --ex: 4vw;
+            --ey: -38vh;
+        }
+
+        .paint-drop:nth-child(4) {
+            --size: clamp(28px, 3vw, 68px);
+            --x: 18%;
+            --y: 78%;
+            --duration: 6.5s;
+            --delay: -3.2s;
+            --rotate: -12deg;
+            --sx: 6vw;
+            --sy: 24vh;
+            --mx: 22vw;
+            --my: -10vh;
+            --ex: -18vw;
+            --ey: -30vh;
+        }
+
+        .paint-drop:nth-child(5) {
+            --size: clamp(42px, 5vw, 96px);
+            --x: 82%;
+            --y: 78%;
+            --duration: 10s;
+            --delay: -6s;
+            --rotate: 8deg;
+            --sx: 16vw;
+            --sy: 30vh;
+            --mx: -24vw;
+            --my: -16vh;
+            --ex: -10vw;
+            --ey: -42vh;
+        }
+
+        .paint-drop:nth-child(6) {
+            --size: clamp(24px, 3vw, 58px);
+            --x: 57%;
+            --y: 6%;
+            --duration: 7.8s;
+            --delay: -5s;
+            --rotate: -38deg;
+            --sx: 24vw;
+            --sy: -18vh;
+            --mx: -8vw;
+            --my: 32vh;
+            --ex: -30vw;
+            --ey: 8vh;
+        }
+
+        .paint-drop:nth-child(7) {
+            --size: clamp(30px, 4vw, 80px);
+            --x: 4%;
+            --y: 42%;
+            --duration: 8.8s;
+            --delay: -7.1s;
+            --rotate: 48deg;
+            --sx: -18vw;
+            --sy: 8vh;
+            --mx: 28vw;
+            --my: -26vh;
+            --ex: 20vw;
+            --ey: 34vh;
+        }
+
+        .paint-drop:nth-child(8) {
+            --size: clamp(62px, 7vw, 132px);
+            --x: 67%;
+            --y: 44%;
+            --duration: 11s;
+            --delay: -8.4s;
+            --rotate: -8deg;
+            --sx: 20vw;
+            --sy: 12vh;
+            --mx: -26vw;
+            --my: 28vh;
+            --ex: -22vw;
+            --ey: -30vh;
+        }
+
+        .paint-drop:nth-child(9) {
+            --size: clamp(18px, 2.6vw, 52px);
+            --x: 32%;
+            --y: 30%;
+            --duration: 6.8s;
+            --delay: -2.2s;
+            --rotate: 24deg;
+            --sx: -8vw;
+            --sy: -30vh;
+            --mx: -22vw;
+            --my: 16vh;
+            --ex: 24vw;
+            --ey: 26vh;
+        }
+
+        .paint-drop:nth-child(10) {
+            --size: clamp(44px, 5vw, 104px);
+            --x: 28%;
+            --y: 86%;
+            --duration: 9.2s;
+            --delay: -6.6s;
+            --rotate: -32deg;
+            --sx: 10vw;
+            --sy: 24vh;
+            --mx: -18vw;
+            --my: -34vh;
+            --ex: 30vw;
+            --ey: -18vh;
+        }
+
+        .paint-drop:nth-child(11) {
+            --size: clamp(22px, 3vw, 64px);
+            --x: 88%;
+            --y: 48%;
+            --duration: 7.2s;
+            --delay: -4.8s;
+            --rotate: 14deg;
+            --sx: 22vw;
+            --sy: -6vh;
+            --mx: -30vw;
+            --my: -20vh;
+            --ex: -16vw;
+            --ey: 32vh;
+        }
+
+        .paint-drop:nth-child(12) {
+            --size: clamp(76px, 8vw, 158px);
+            --x: 12%;
+            --y: 60%;
+            --duration: 12s;
+            --delay: -9.5s;
+            --rotate: -18deg;
+            --sx: -16vw;
+            --sy: 20vh;
+            --mx: 26vw;
+            --my: 12vh;
+            --ex: -24vw;
+            --ey: -34vh;
+        }
+
+        @keyframes paintPass {
+            0%, 100% {
+                opacity: 0;
+                transform: translate3d(var(--sx), var(--sy), 0) rotate(calc(var(--rotate) - 34deg)) scale(0.62);
+            }
+
+            14% {
+                opacity: 0.52;
+            }
+
+            34% {
+                opacity: 0.78;
+                transform: translate3d(var(--mx), var(--my), 0) rotate(calc(var(--rotate) + 18deg)) scale(1.1);
+            }
+
+            62% {
+                opacity: 0.62;
+                transform: translate3d(calc(var(--mx) * -0.45), calc(var(--my) * 0.55), 0) rotate(calc(var(--rotate) - 16deg)) scale(0.9);
+            }
+
+            88% {
+                opacity: 0;
+                transform: translate3d(var(--ex), var(--ey), 0) rotate(calc(var(--rotate) + 46deg)) scale(0.66);
+            }
+        }
+
+        @media (max-width: 760px) {
+            body {
+                overflow: auto;
+            }
+
+            .board {
+                grid-template-columns: 1fr;
+            }
+
+            .versus {
+                justify-self: center;
+                width: 86px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="confetti" aria-hidden="true"></div>
+    <div class="lightning-divider" aria-hidden="true"></div>
+    <div class="motion-field motion-left" aria-hidden="true">
+        <span class="paint-drop"></span>
+        <span class="paint-drop"></span>
+        <span class="paint-drop"></span>
+        <span class="paint-drop"></span>
+        <span class="paint-drop"></span>
+        <span class="paint-drop"></span>
+        <span class="paint-drop"></span>
+        <span class="paint-drop"></span>
+        <span class="paint-drop"></span>
+        <span class="paint-drop"></span>
+        <span class="paint-drop"></span>
+        <span class="paint-drop"></span>
+    </div>
+    <div class="motion-field motion-right" aria-hidden="true">
+        <span class="paint-drop"></span>
+        <span class="paint-drop"></span>
+        <span class="paint-drop"></span>
+        <span class="paint-drop"></span>
+        <span class="paint-drop"></span>
+        <span class="paint-drop"></span>
+        <span class="paint-drop"></span>
+        <span class="paint-drop"></span>
+        <span class="paint-drop"></span>
+        <span class="paint-drop"></span>
+        <span class="paint-drop"></span>
+        <span class="paint-drop"></span>
+    </div>
+    <main>
+        <h1>Passa ou Repassa</h1>
+        <section class="board" aria-label="Placar da gincana">
+            <article class="team team-a">
+                <h2 class="team-name" id="nameA">Time Vermelho</h2>
+                <div class="score" id="scoreA">0</div>
+            </article>
+
+            <div class="versus" aria-hidden="true">VS</div>
+
+            <article class="team team-b">
+                <h2 class="team-name" id="nameB">Time Azul</h2>
+                <div class="score" id="scoreB">0</div>
+            </article>
+        </section>
+    </main>
+    <div class="status" id="syncStatus">Conectando...</div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyA5ySYmw4m6tLdQtZ2Vp3baRWDdoXwkceQ",
+            authDomain: "dreamrocket-login.firebaseapp.com",
+            databaseURL: "https://dreamrocket-login-default-rtdb.firebaseio.com",
+            projectId: "dreamrocket-login",
+            storageBucket: "dreamrocket-login.firebasestorage.app",
+            messagingSenderId: "938173998872",
+            appId: "1:938173998872:web:b8e22b6ea657cb9285206d"
+        };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+
+        const database = firebase.database();
+        const elements = {
+            nameA: document.getElementById("nameA"),
+            nameB: document.getElementById("nameB"),
+            scoreA: document.getElementById("scoreA"),
+            scoreB: document.getElementById("scoreB"),
+            syncStatus: document.getElementById("syncStatus")
+        };
+
+        let previousScores = null;
+
+        function normalizeNumber(value) {
+            const parsed = parseInt(value, 10);
+            return Number.isFinite(parsed) ? parsed : 0;
+        }
+
+        function normalizeTeamBName(name) {
+            if (!name || name === "Time Verde") return "Time Azul";
+            return name;
+        }
+
+        function animateScore(element, direction) {
+            const className = direction > 0 ? "score-up" : "score-down";
+            const team = element.closest(".team");
+
+            element.classList.remove("score-up", "score-down");
+            if (team) {
+                team.classList.remove("team-active");
+            }
+
+            void element.offsetWidth;
+
+            if (team) {
+                team.classList.add("team-active");
+            }
+
+            element.classList.add(className);
+
+            window.setTimeout(() => {
+                if (team) {
+                    team.classList.remove("team-active");
+                }
+                element.classList.remove(className);
+            }, 950);
+        }
+
+        function render(data) {
+            const timeA = data && data.timeA ? data.timeA : {};
+            const timeB = data && data.timeB ? data.timeB : {};
+            const nextScores = {
+                timeA: normalizeNumber(timeA.pontos),
+                timeB: normalizeNumber(timeB.pontos)
+            };
+
+            elements.nameA.textContent = timeA.nome || "Time Vermelho";
+            elements.nameB.textContent = normalizeTeamBName(timeB.nome);
+            elements.scoreA.textContent = nextScores.timeA;
+            elements.scoreB.textContent = nextScores.timeB;
+            elements.syncStatus.textContent = `Ao vivo: ${new Date().toLocaleTimeString("pt-BR")}`;
+
+            if (previousScores) {
+                if (nextScores.timeA > previousScores.timeA) {
+                    animateScore(elements.scoreA, 1);
+                } else if (nextScores.timeA < previousScores.timeA) {
+                    animateScore(elements.scoreA, -1);
+                }
+
+                if (nextScores.timeB > previousScores.timeB) {
+                    animateScore(elements.scoreB, 1);
+                } else if (nextScores.timeB < previousScores.timeB) {
+                    animateScore(elements.scoreB, -1);
+                }
+            }
+
+            previousScores = nextScores;
+        }
+
+        database.ref("gincana").on("value", (snapshot) => {
+            render(snapshot.val());
+        }, (error) => {
+            elements.syncStatus.textContent = "Erro ao sincronizar";
+            console.error("Erro ao ler gincana:", error);
+        });
+    </script>
+</body>
+</html>

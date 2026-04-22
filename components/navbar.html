@@ -1,62 +1,57 @@
-<!-- components/navbar.html - VERSÃO LIMPA PARA NOVOS PROJETOS -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm fixed-top">
     <div class="container-fluid">
-        <!-- Logo SEM LINK - apenas imagem e texto -->
         <div class="navbar-brand fw-bold d-flex align-items-center">
             <img src="img/logo.ico" alt="Logo" class="navbar-logo me-2" style="height: 30px; width: auto;"
                  onerror="this.style.display='none';">
             <span>Sistema</span>
         </div>
-        
-        <!-- Botão Mobile -->
+
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
             <span class="navbar-toggler-icon"></span>
         </button>
-        
-        <!-- Conteúdo Navbar -->
+
         <div class="collapse navbar-collapse" id="mainNavbar">
-            <!-- Menu Principal -->
             <ul class="navbar-nav me-auto">
-                <!-- Dashboard -->
                 <li class="nav-item">
                     <a class="nav-link" href="dashboard.html" id="navDashboard">
                         <i class="fas fa-tachometer-alt me-1"></i>Dashboard
                     </a>
                 </li>
 
-                <!-- Base (NOVA PÁGINA) -->
                 <li class="nav-item">
                     <a class="nav-link" href="base.html" id="navBase">
                         <i class="fas fa-code me-1"></i>Base
                     </a>
                 </li>
 
-                <!-- Solicitações -->
                 <li class="nav-item">
-                    <a class="nav-link" href="solicitacoes.html" id="navSolicitacoes">
-                        <i class="fas fa-clipboard-list me-1"></i>Solicitações
+                    <a class="nav-link" href="pdv.html" id="navPdv">
+                        <i class="fas fa-cash-register me-1"></i>PDV
                     </a>
                 </li>
-                
-                <!-- Escalas -->
+
+                <li class="nav-item">
+                    <a class="nav-link" href="solicitacoes.html" id="navSolicitacoes">
+                        <i class="fas fa-clipboard-list me-1"></i>Solicitacoes
+                    </a>
+                </li>
+
                 <li class="nav-item">
                     <a class="nav-link" href="escalas.html" id="navEscalas">
                         <i class="fas fa-calendar-alt me-1"></i>Escalas
                     </a>
                 </li>
 
-                <!-- Exclusões -->
                 <li class="nav-item">
                     <a class="nav-link" href="exclusoes.html" id="navExclusoes">
-                        <i class="fas fa-calendar-times me-1"></i>Exclusões
+                        <i class="fas fa-calendar-times me-1"></i>Exclusoes
                     </a>
                 </li>
             </ul>
-            
-            <!-- User Dropdown Unificado -->
+
             <div class="dropdown">
-                <button class="btn btn-outline-light dropdown-toggle d-flex align-items-center" 
-                        type="button" 
+                <button class="btn btn-outline-light dropdown-toggle d-flex align-items-center"
+                        type="button"
                         data-bs-toggle="dropdown"
                         id="userGreetingDropdown">
                     <i class="fas fa-user me-2"></i>

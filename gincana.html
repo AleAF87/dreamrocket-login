@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gincana</title>
+    <style>
+        :root {
+            --ink: #17202a;
+            --paper: #fffaf0;
+            --red: #ff4f5e;
+            --yellow: #ffd447;
+            --green: #20bf6b;
+            --orange: #ff8a3d;
+            --blue: #1d8fe3;
+            --shadow: rgba(23, 32, 42, 0.18);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Trebuchet MS", Arial, sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at 15% 18%, rgba(255, 212, 71, 0.45), transparent 18rem),
+                radial-gradient(circle at 85% 16%, rgba(32, 191, 107, 0.35), transparent 16rem),
+                linear-gradient(135deg, #fffaf0 0%, #ffe7b5 48%, #ffc270 100%);
+            padding: 24px;
+        }
+
+        main {
+            width: min(1180px, 100%);
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(2rem, 4vw, 4rem);
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            color: #111;
+            text-shadow: 3px 3px 0 var(--yellow);
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        a,
+        button {
+            font: inherit;
+        }
+
+        .top-link,
+        .reset-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+            padding: 10px 14px;
+            border: 3px solid #111;
+            border-radius: 8px;
+            background: #fff;
+            color: #111;
+            font-weight: 800;
+            text-decoration: none;
+            cursor: pointer;
+            box-shadow: 4px 4px 0 #111;
+        }
+
+        .top-link:hover,
+        .reset-button:hover {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #111;
+        }
+
+        .scoreboard {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(220px, 0.5fr) minmax(0, 1fr);
+            gap: 16px;
+            align-items: start;
+        }
+
+        .team-panel,
+        .values-panel {
+            border: 4px solid #111;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.92);
+            box-shadow: 8px 8px 0 var(--shadow);
+            padding: 16px;
+        }
+
+        .team-panel.team-a {
+            background: #fff0f2;
+        }
+
+        .team-panel.team-b {
+            background: #e8f3ff;
+        }
+
+        .team-name {
+            width: 100%;
+            border: 3px solid #111;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: clamp(1.2rem, 2vw, 1.8rem);
+            font-weight: 900;
+            color: #111;
+            background: #fff;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        .score {
+            margin: 14px 0;
+            min-height: 150px;
+            display: grid;
+            place-items: center;
+            border: 4px solid #111;
+            border-radius: 8px;
+            background: #111;
+            color: #fff;
+            font-size: clamp(4.8rem, 12vw, 8.8rem);
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .team-a .score {
+            box-shadow: inset 0 -10px 0 var(--red);
+        }
+
+        .team-b .score {
+            box-shadow: inset 0 -10px 0 var(--blue);
+        }
+
+        .points-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .point-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+        }
+
+        .score-button,
+        .minus-button {
+            min-height: 56px;
+            border: 3px solid #111;
+            border-radius: 8px;
+            font-weight: 900;
+            cursor: pointer;
+            color: #111;
+            box-shadow: 4px 4px 0 #111;
+        }
+
+        .score-button {
+            background: var(--yellow);
+            font-size: 1.25rem;
+        }
+
+        .minus-button {
+            width: 62px;
+            background: #fff;
+            font-size: 1.5rem;
+        }
+
+        .score-button:hover,
+        .minus-button:hover {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #111;
+        }
+
+        .values-panel {
+            position: sticky;
+            top: 16px;
+            background: #fff;
+        }
+
+        .values-panel h2 {
+            margin: 0 0 12px;
+            font-size: 1.4rem;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        .value-row {
+            display: grid;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .value-row label {
+            font-weight: 900;
+            text-transform: uppercase;
+            font-size: 0.82rem;
+        }
+
+        .value-input {
+            width: 100%;
+            border: 3px solid #111;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 1.3rem;
+            font-weight: 900;
+            text-align: center;
+            background: #fff9d7;
+        }
+
+        .status {
+            margin-top: 12px;
+            font-weight: 800;
+            text-align: center;
+            color: #3b3b3b;
+        }
+
+        @media (max-width: 880px) {
+            .scoreboard {
+                grid-template-columns: 1fr;
+            }
+
+            .values-panel {
+                position: static;
+                order: -1;
+            }
+        }
+
+        @media (max-width: 560px) {
+            body {
+                padding: 14px;
+            }
+
+            header {
+                align-items: stretch;
+            }
+
+            .actions {
+                width: 100%;
+            }
+
+            .top-link,
+            .reset-button {
+                flex: 1 1 160px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <header>
+            <h1>Passa ou Repassa</h1>
+            <div class="actions">
+                <a class="top-link" href="gincana-projecao.html" target="_blank" rel="noopener">Abrir telao</a>
+                <button class="reset-button" type="button" id="resetScores">Zerar placar</button>
+            </div>
+        </header>
+
+        <section class="scoreboard" aria-label="Controle da gincana">
+            <article class="team-panel team-a">
+                <input class="team-name" id="nameA" type="text" maxlength="24" aria-label="Nome do time A">
+                <div class="score" id="scoreA">0</div>
+                <div class="points-list" id="buttonsA"></div>
+            </article>
+
+            <aside class="values-panel" aria-label="Valores dos botoes">
+                <h2>Valores</h2>
+                <div id="valueInputs"></div>
+                <p class="status" id="syncStatus">Conectando...</p>
+            </aside>
+
+            <article class="team-panel team-b">
+                <input class="team-name" id="nameB" type="text" maxlength="24" aria-label="Nome do time B">
+                <div class="score" id="scoreB">0</div>
+                <div class="points-list" id="buttonsB"></div>
+            </article>
+        </section>
+    </main>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyA5ySYmw4m6tLdQtZ2Vp3baRWDdoXwkceQ",
+            authDomain: "dreamrocket-login.firebaseapp.com",
+            databaseURL: "https://dreamrocket-login-default-rtdb.firebaseio.com",
+            projectId: "dreamrocket-login",
+            storageBucket: "dreamrocket-login.firebasestorage.app",
+            messagingSenderId: "938173998872",
+            appId: "1:938173998872:web:b8e22b6ea657cb9285206d"
+        };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+
+        const database = firebase.database();
+        const gincanaRef = database.ref("gincana");
+        const defaultState = {
+            timeA: { nome: "Time Vermelho", pontos: 0 },
+            timeB: { nome: "Time Azul", pontos: 0 },
+            valores: [1, 5, 10, 20, 50]
+        };
+
+        const elements = {
+            nameA: document.getElementById("nameA"),
+            nameB: document.getElementById("nameB"),
+            scoreA: document.getElementById("scoreA"),
+            scoreB: document.getElementById("scoreB"),
+            buttonsA: document.getElementById("buttonsA"),
+            buttonsB: document.getElementById("buttonsB"),
+            valueInputs: document.getElementById("valueInputs"),
+            resetScores: document.getElementById("resetScores"),
+            syncStatus: document.getElementById("syncStatus")
+        };
+
+        let state = defaultState;
+        let isRendering = false;
+        let nameDebounce = null;
+        let valueDebounce = null;
+
+        function normalizeNumber(value) {
+            const parsed = parseInt(value, 10);
+            return Number.isFinite(parsed) ? parsed : 0;
+        }
+
+        function normalizeTeamBName(name) {
+            if (!name || name === "Time Verde") return defaultState.timeB.nome;
+            return name;
+        }
+
+        function getValues(data) {
+            const values = Array.isArray(data.valores)
+                ? data.valores
+                : Object.values(data.valores || {});
+
+            return defaultState.valores.map((fallback, index) => {
+                const value = values[index];
+                return normalizeNumber(value === undefined ? fallback : value);
+            });
+        }
+
+        function getState(data) {
+            const next = data || {};
+            return {
+                timeA: {
+                    nome: next.timeA && next.timeA.nome ? next.timeA.nome : defaultState.timeA.nome,
+                    pontos: normalizeNumber(next.timeA && next.timeA.pontos)
+                },
+                timeB: {
+                    nome: normalizeTeamBName(next.timeB && next.timeB.nome),
+                    pontos: normalizeNumber(next.timeB && next.timeB.pontos)
+                },
+                valores: getValues(next)
+            };
+        }
+
+        function renderValueInputs() {
+            elements.valueInputs.innerHTML = state.valores.map((value, index) => `
+                <div class="value-row">
+                    <label for="value${index}">Botao ${index + 1}</label>
+                    <input class="value-input" id="value${index}" type="number" min="0" step="1" value="${value}" data-index="${index}">
+                </div>
+            `).join("");
+        }
+
+        function renderButtons(container, teamKey) {
+            container.innerHTML = state.valores.map((value) => `
+                <div class="point-row">
+                    <button class="score-button" type="button" data-team="${teamKey}" data-delta="${value}">+${value} ponto${Math.abs(value) === 1 ? "" : "s"}</button>
+                    <button class="minus-button" type="button" data-team="${teamKey}" data-delta="${-value}" aria-label="Reduzir ${value} ponto${Math.abs(value) === 1 ? "" : "s"}">-</button>
+                </div>
+            `).join("");
+        }
+
+        function render() {
+            isRendering = true;
+            elements.nameA.value = state.timeA.nome;
+            elements.nameB.value = state.timeB.nome;
+            elements.scoreA.textContent = state.timeA.pontos;
+            elements.scoreB.textContent = state.timeB.pontos;
+            renderValueInputs();
+            renderButtons(elements.buttonsA, "timeA");
+            renderButtons(elements.buttonsB, "timeB");
+            isRendering = false;
+        }
+
+        function addPoints(teamKey, delta) {
+            const pointsRef = database.ref(`gincana/${teamKey}/pontos`);
+            pointsRef.transaction((current) => normalizeNumber(current) + delta);
+        }
+
+        function updateTeamName(teamKey, name) {
+            const cleanName = name.trim() || defaultState[teamKey].nome;
+            database.ref(`gincana/${teamKey}/nome`).set(cleanName);
+        }
+
+        function updateValues() {
+            const values = Array.from(document.querySelectorAll(".value-input")).map((input) => normalizeNumber(input.value));
+            database.ref("gincana/valores").set(values);
+        }
+
+        function scheduleNameUpdate(teamKey, value) {
+            clearTimeout(nameDebounce);
+            nameDebounce = setTimeout(() => updateTeamName(teamKey, value), 300);
+        }
+
+        function scheduleValueUpdate() {
+            clearTimeout(valueDebounce);
+            valueDebounce = setTimeout(updateValues, 250);
+        }
+
+        document.addEventListener("click", (event) => {
+            const button = event.target.closest("[data-team][data-delta]");
+            if (!button) return;
+
+            addPoints(button.dataset.team, normalizeNumber(button.dataset.delta));
+        });
+
+        elements.valueInputs.addEventListener("input", (event) => {
+            if (isRendering || !event.target.matches(".value-input")) return;
+            scheduleValueUpdate();
+        });
+
+        elements.nameA.addEventListener("input", () => {
+            if (!isRendering) scheduleNameUpdate("timeA", elements.nameA.value);
+        });
+
+        elements.nameB.addEventListener("input", () => {
+            if (!isRendering) scheduleNameUpdate("timeB", elements.nameB.value);
+        });
+
+        elements.resetScores.addEventListener("click", () => {
+            database.ref("gincana").update({
+                "timeA/pontos": 0,
+                "timeB/pontos": 0
+            });
+        });
+
+        gincanaRef.on("value", (snapshot) => {
+            const exists = snapshot.exists();
+            state = getState(snapshot.val());
+            render();
+            elements.syncStatus.textContent = `Sincronizado: ${new Date().toLocaleTimeString("pt-BR")}`;
+
+            if (!exists) {
+                gincanaRef.set(defaultState);
+            }
+        }, (error) => {
+            elements.syncStatus.textContent = "Erro ao sincronizar";
+            console.error("Erro ao ler gincana:", error);
+        });
+    </script>
+</body>
+</html>
